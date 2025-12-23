@@ -2,7 +2,8 @@
 
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { LucideIcon, FileText, Activity, Network, TrendingUp, Music, Calculator } from 'lucide-react';
+import { LucideIcon, FileText, Activity, Network, TrendingUp, Music, Calculator, Pin } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // Icon mapping (simplified for demo, can be expanded)
 const iconMap: Record<string, LucideIcon> = {
@@ -40,7 +41,7 @@ export const CentralNode = memo(({ data }: NodeProps) => {
     );
 });
 
-export const LeafNode = memo(({ data }: NodeProps) => {
+export const LeafNode = memo(({ id, data }: NodeProps) => {
     // Determine icon based on category
     const categoryName = data.category || "default";
     const Icon = iconMap[categoryName] || iconMap["default"];
@@ -52,6 +53,22 @@ export const LeafNode = memo(({ data }: NodeProps) => {
                 position={Position.Top}
                 className="!bg-transparent !border-none !w-1 !h-1 !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2"
             />
+
+            {/* Pin Button */}
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    data.onPinClick?.(id);
+                }}
+                className={cn(
+                    "absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all duration-200 z-50",
+                    data.isPinned
+                        ? "bg-blue-100 text-blue-600 border border-blue-200"
+                        : "bg-white text-slate-300 opacity-0 group-hover:opacity-100 hover:text-slate-600 hover:bg-slate-50"
+                )}
+            >
+                <Pin className="w-4 h-4 fill-current" />
+            </button>
 
             {/* Top Row: Icon & Tag */}
             <div className="flex justify-between items-start mb-5">

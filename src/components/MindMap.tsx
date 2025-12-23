@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useEffect } from 'react';
 import ReactFlow, {
     Background,
     useNodesState,
@@ -20,8 +20,13 @@ interface MindMapProps {
 }
 
 const MindMap: React.FC<MindMapProps> = ({ initialNodes, initialEdges, onNodeClick, onPaneClick }) => {
-    const [nodes, , onNodesChange] = useNodesState(initialNodes);
-    const [edges, , onEdgesChange] = useEdgesState(initialEdges);
+    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+    useEffect(() => {
+        setNodes(initialNodes);
+        setEdges(initialEdges);
+    }, [initialNodes, initialEdges, setNodes, setEdges]);
 
     const nodeTypes = useMemo<NodeTypes>(() => ({
         central: CentralNode,
