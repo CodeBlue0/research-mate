@@ -45,8 +45,9 @@ const MindMap: React.FC<MindMapProps> = ({ initialNodes, initialEdges, onNodeCli
                 fitView
                 // Disable some interactions for a cleaner "presentation" feel
                 nodesDraggable={false}
-                zoomOnScroll={true}
-                panOnDrag={true}
+                zoomOnScroll={false}
+                zoomOnPinch={false}
+                panOnDrag={false}
                 zoomOnDoubleClick={false}
                 minZoom={0.5}
                 maxZoom={1.5}

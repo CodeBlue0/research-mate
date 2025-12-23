@@ -21,11 +21,11 @@ export const CentralNode = memo(({ data }: NodeProps) => {
             <div className="absolute inset-0 rounded-full bg-slate-900/20 blur-xl group-hover:bg-slate-900/30 transition-all duration-500 animate-pulse" />
 
             {/* Main Circle */}
-            <div className="relative w-[180px] h-[180px] rounded-full bg-slate-900 flex flex-col items-center justify-center p-4 text-center border-4 border-slate-100 shadow-2xl transition-transform duration-300 hover:scale-105">
-                <div className="text-white font-bold text-xl leading-tight">
+            <div className="relative w-[260px] h-[260px] rounded-full bg-slate-900 flex flex-col items-center justify-center p-6 text-center border-4 border-slate-100 shadow-2xl transition-transform duration-300 hover:scale-105">
+                <div className="text-white font-bold text-4xl leading-tight">
                     {data.label}
                 </div>
-                <div className="text-slate-400 text-xs mt-2 uppercase tracking-wider font-semibold">
+                <div className="text-slate-400 text-sm mt-3 uppercase tracking-wider font-semibold">
                     Main Topic
                 </div>
             </div>
@@ -41,13 +41,12 @@ export const CentralNode = memo(({ data }: NodeProps) => {
 });
 
 export const LeafNode = memo(({ data }: NodeProps) => {
-    // Determine icon based on category (mapping from data.tags or label)
-    // For now, using a heuristic or passed icon name
-    const category = data.tags && data.tags[0] ? data.tags[0] : "default";
-    const Icon = iconMap[category] || iconMap["default"];
+    // Determine icon based on category
+    const categoryName = data.category || "default";
+    const Icon = iconMap[categoryName] || iconMap["default"];
 
     return (
-        <div className="relative w-[320px] bg-white rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 group border border-slate-100">
+        <div className="relative w-[420px] bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 group border border-slate-100">
             <Handle
                 type="target"
                 position={Position.Top}
@@ -55,24 +54,24 @@ export const LeafNode = memo(({ data }: NodeProps) => {
             />
 
             {/* Top Row: Icon & Tag */}
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex justify-between items-start mb-5">
                 <div className={`p-3 rounded-2xl ${data.iconColor || 'bg-blue-100 text-blue-600'}`}>
-                    <Icon className="w-6 h-6" />
+                    <Icon className="w-7 h-7" />
                 </div>
                 {data.category && (
-                    <span className="bg-slate-100 text-slate-500 text-xs font-bold px-3 py-1 rounded-full">
+                    <span className="bg-slate-100 text-slate-500 text-sm font-bold px-4 py-1.5 rounded-full">
                         {data.category}
                     </span>
                 )}
             </div>
 
             {/* Title */}
-            <h3 className="font-bold text-slate-800 text-lg leading-snug mb-2 line-clamp-2">
+            <h3 className="font-bold text-slate-800 text-3xl leading-snug mb-3 line-clamp-3">
                 {data.label}
             </h3>
 
             {/* Description */}
-            <p className="text-slate-500 text-sm leading-relaxed mb-4 line-clamp-2">
+            <p className="text-slate-500 text-lg leading-relaxed mb-6 line-clamp-3">
                 {data.description}
             </p>
 

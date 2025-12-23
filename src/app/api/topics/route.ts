@@ -4,8 +4,8 @@ import { Node } from 'reactflow';
 
 // Layout helpers matching data.ts
 const CENTER_X = 600;
-const CENTER_Y = 400;
-const RADIUS = 350;
+const CENTER_Y = 550;
+const RADIUS = 450;
 
 const getPosition = (index: number, total: number = 5) => {
     const angle = (index * 2 * Math.PI) / total - Math.PI / 2;
@@ -13,7 +13,7 @@ const getPosition = (index: number, total: number = 5) => {
     let y = CENTER_Y + RADIUS * Math.sin(angle) - 100;
 
     if (index === 1 || index === 4) {
-        y += 50;
+        y += 90;
     }
     return { x, y };
 };
@@ -34,6 +34,10 @@ export async function POST(request: Request) {
         // Check for API Key but don't fail immediately, try-catch will handle fallback
         const apiKey = process.env.DEEPSEEK_API_KEY;
         const shouldUseRealApi = !!apiKey && apiKey.length > 0 && apiKey !== 'dummy-key';
+
+        console.log("DeepSeek Debug - API Key Present:", !!apiKey);
+        console.log("DeepSeek Debug - Key Value:", apiKey === 'dummy-key' ? 'dummy-key' : (apiKey ? 'Provided (hidden)' : 'Undefined'));
+        console.log("DeepSeek Debug - shouldUseRealApi:", shouldUseRealApi);
 
         let topics = [];
 
