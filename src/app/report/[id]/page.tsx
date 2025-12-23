@@ -1,33 +1,99 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Share2, Bookmark, ChevronRight, FileText, Download, Book } from 'lucide-react';
-import { MOCK_BLUEPRINT } from '@/lib/data';
+import { Share2, Bookmark, ChevronRight, FileText, Loader2, Book } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 
-export default function ReportPage() {
+interface ReportData {
+    title: string;
+    subTitle: string;
+    summary: string;
+    coreConcepts: { name: string; description: string }[];
+    curriculum: { name: string; description: string }[];
+    inquiryGuide: string[];
+    references: string[];
+}
+
+function ReportPageContent() {
     const params = useParams();
     const id = params?.id as string;
+    const searchParams = useSearchParams();
+    const topicParam = searchParams.get('topic');
+
+    const [data, setData] = useState<ReportData | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchReport = async () => {
+            if (!topicParam) {
+                // If no topic param, we might want to default to something or show error
+                // For now, let's use a default if it's missing to prevent empty page during dev
+                setLoading(false);
+                return;
+            }
+
+            setLoading(true);
+            try {
+                const res = await fetch('/api/report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic: topicParam })
+                });
+
+                if (!res.ok) throw new Error("Failed to fetch report");
+
+                const result = await res.json();
+                console.log("Report Data:", result);
+                setData(result);
+            } catch (error) {
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchReport();
+    }, [topicParam]);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
+                <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+                <h2 className="text-xl font-bold text-slate-800">보고서 생성 중...</h2>
+                <p className="text-slate-500">DeepSeek AI가 연구 주제를 심층 분석하고 있습니다.</p>
+            </div>
+        );
+    }
+
+    // Fallback if no data (optional: keep mock data or show empty)
+    if (!data && !topicParam) {
+        // Render the original Mock structure if no topic is provided?
+        // Or just show message.
+        return <div className="min-h-screen flex items-center justify-center">주제를 선택해주세요.</div>;
+    }
+
+    // If data failed to load but we aren't loading, show error?
+    if (!data) return <div className="min-h-screen flex items-center justify-center">데이터를 불러오지 못했습니다.</div>;
 
     return (
         <div className="bg-slate-50 min-h-screen py-10">
             <div className="container mx-auto max-w-4xl px-4">
                 {/* Breadcrumb */}
                 <div className="flex items-center gap-2 text-sm text-gray-500 mb-6 font-medium">
-                    <span>물리학</span> <ChevronRight className="w-4 h-4" />
-                    <span>고등학교 2학년</span> <ChevronRight className="w-4 h-4" />
-                    <Badge variant="secondary" className="text-green-600 bg-green-100 hover:bg-green-100 rounded-md">심화 탐구</Badge>
+                    <span>탐구 보고서</span> <ChevronRight className="w-4 h-4" />
+                    <span>심화 탐구</span> <ChevronRight className="w-4 h-4" />
+                    <Badge variant="secondary" className="text-green-600 bg-green-100 hover:bg-green-100 rounded-md">DeepSeek Generated</Badge>
                 </div>
 
                 {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight mb-6">
-                        태양광 패널의 온도별 효율성 분석
-                        <span className="block text-xl font-medium text-gray-500 mt-2">반도체 물성을 기초로 한 에너지 효율 최적화 방안 연구</span>
+                        {data.title}
+                        <span className="block text-xl font-medium text-gray-500 mt-2">{data.subTitle}</span>
                     </h1>
 
                     <div className="flex gap-3">
@@ -50,11 +116,7 @@ export default function ReportPage() {
                                 <div className="w-1 h-6 bg-blue-600 rounded-full" /> 개요
                             </h2>
                             <p className="text-gray-700 leading-relaxed mb-4">
-                                태양광 발전은 친환경 에너지의 핵심이지만, 온도 변화에 따른 발전 효율 저하가 주요한 기술적 과제 중 하나입니다.
-                                이 주제는 반도체의 온도가 상승함에 따라 밴드갭 에너지가 변화하고, 이것이 태양광 패널(Photo-voltaic module)의 출력 전압과 전류에 어떤 영향을 미치는지 정량적으로 분석하는 것을 목표로 합니다.
-                            </p>
-                            <p className="text-gray-700 leading-relaxed">
-                                학생들은 직접 실험 환경을 구축하여 다양한 온도 조건에서의 전압(V)과 전류(I)를 측정하고, 이를 바탕으로 P-V 곡선을 그려 최대 전력점(MPP)이 어떻게 이동하는지 관찰할 수 있습니다.
+                                {data.summary}
                             </p>
                         </section>
 
@@ -64,18 +126,14 @@ export default function ReportPage() {
                                 <div className="w-2 h-2 rounded-full bg-blue-600" /> 핵심 개념
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Card className="p-6 border-none shadow-sm hover:shadow-md transition-shadow">
-                                    <h3 className="font-bold text-lg mb-2">반도체 밴드갭</h3>
-                                    <p className="text-sm text-gray-600 leading-relaxed">
-                                        온도가 상승하면 원자 격자의 진동이 커지며 밴드갭이 좁아지는 현상에 대해 이해가 필요합니다.
-                                    </p>
-                                </Card>
-                                <Card className="p-6 border-none shadow-sm hover:shadow-md transition-shadow">
-                                    <h3 className="font-bold text-lg mb-2">광전 효과</h3>
-                                    <p className="text-sm text-gray-600 leading-relaxed">
-                                        빛 에너지를 받아 전자가 튀어 나가는 현상으로, 태양광 발전의 가장 기초적인 원리입니다.
-                                    </p>
-                                </Card>
+                                {data.coreConcepts.map((concept, idx) => (
+                                    <Card key={idx} className="p-6 border-none shadow-sm hover:shadow-md transition-shadow">
+                                        <h3 className="font-bold text-lg mb-2">{concept.name}</h3>
+                                        <p className="text-sm text-gray-600 leading-relaxed">
+                                            {concept.description}
+                                        </p>
+                                    </Card>
+                                ))}
                             </div>
                         </section>
 
@@ -85,26 +143,17 @@ export default function ReportPage() {
                                 <Book className="w-5 h-5" /> 교과 연계
                             </h2>
                             <div className="space-y-6">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-900" />
-                                        <h3 className="font-bold text-lg">물리학 I</h3>
+                                {data.curriculum.map((curr, idx) => (
+                                    <div key={idx}>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-900" />
+                                            <h3 className="font-bold text-lg">{curr.name}</h3>
+                                        </div>
+                                        <div className="pl-4 border-l-2 border-blue-100 ml-1.5">
+                                            <p className="text-gray-600 text-sm">{curr.description}</p>
+                                        </div>
                                     </div>
-                                    <div className="pl-4 border-l-2 border-blue-100 ml-1.5">
-                                        <p className="text-blue-600 font-bold text-sm mb-1">2. 물질과 전자기장</p>
-                                        <p className="text-gray-600 text-sm">반도체의 전기적 성질과 다이오드의 접합 원리를 배우는 단원과 직접적으로 연결됩니다.</p>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-900" />
-                                        <h3 className="font-bold text-lg">통합과학</h3>
-                                    </div>
-                                    <div className="pl-4 border-l-2 border-blue-100 ml-1.5">
-                                        <p className="text-blue-600 font-bold text-sm mb-1">IV. 환경과 에너지</p>
-                                        <p className="text-gray-600 text-sm">태양광 발전의 효율성을 높이기 위한 다양한 시도와 신재생 에너지의 필요성을 다룹니다.</p>
-                                    </div>
-                                </div>
+                                ))}
                             </div>
                         </section>
 
@@ -117,26 +166,30 @@ export default function ReportPage() {
                                 <Button
                                     variant="link"
                                     className="text-blue-600 font-semibold p-0 h-auto"
-                                    onClick={() => window.location.href = `${window.location.pathname}/inquiry-guide`}
+                                    asChild
                                 >
-                                    자세히 보기 <ChevronRight className="w-4 h-4 ml-1" />
+                                    <Link href={`/report/${params.id}/inquiry-guide`}>
+                                        자세히 보기 <ChevronRight className="w-4 h-4 ml-1" />
+                                    </Link>
                                 </Button>
                             </div>
                             <div className="space-y-4">
                                 {[
-                                    { step: 1, title: '가설 설정', desc: '"온도가 10도 상승할 때마다 발전 효율은 약 X% 감소할 것이다"와 같이 정량적인 가설을 세워보세요.' },
-                                    { step: 2, title: '실험 설계', desc: '할로겐 램프로 태양광을 모사하고, 펠티어 소자나 가열판을 이용해 패널의 온도를 통제하는 방법을 구상합니다.' },
-                                    { step: 3, title: '데이터 분석', desc: '온도별 전압-전류 그래프를 엑셀이나 파이썬으로 시각화하여 비교 분석합니다.' },
-                                    { step: 4, title: '보고서 작성', desc: '서론-본론-결론의 구조를 갖춘 논리적인 탐구 보고서를 작성합니다.' },
-                                ].map((guide) => (
-                                    <Link key={guide.step} href={`/report/${id}/inquiry-guide/step-${guide.step}`} className="block group">
+                                    { step: 1, title: '가설 설정' },
+                                    { step: 2, title: '실험 설계' },
+                                    { step: 3, title: '데이터 분석' },
+                                    { step: 4, title: '보고서 작성' },
+                                ].map((guide, idx) => (
+                                    <Link key={guide.step} href={`/report/${id}/inquiry-guide/step-${guide.step}?topic=${encodeURIComponent(topicParam || '')}`} className="block group">
                                         <div className="bg-white rounded-xl p-6 shadow-sm flex gap-6 items-start border border-transparent hover:border-blue-200 transition-all hover:shadow-md">
                                             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center text-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
                                                 {guide.step}
                                             </div>
                                             <div>
                                                 <h3 className="font-bold text-lg mb-1 group-hover:text-blue-600 transition-colors">{guide.title}</h3>
-                                                <p className="text-gray-600 text-sm leading-relaxed">{guide.desc}</p>
+                                                <p className="text-gray-600 text-sm leading-relaxed">
+                                                    {data.inquiryGuide && data.inquiryGuide[idx] ? data.inquiryGuide[idx] : "가이드 내용을 불러오는 중..."}
+                                                </p>
                                             </div>
                                         </div>
                                     </Link>
@@ -159,29 +212,29 @@ export default function ReportPage() {
                             <div className="mt-8 border-t pt-6">
                                 <h3 className="font-bold text-sm text-slate-800 mb-4">참고 자료</h3>
                                 <div className="space-y-3">
-                                    <a href="#" className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors group">
-                                        <FileText className="w-5 h-5 text-gray-400 group-hover:text-blue-500 flex-shrink-0" />
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-700 leading-tight mb-1">Temperature coefficients of photovoltaic modules (IEEE Paper)</p>
-                                            <p className="text-xs text-gray-400">학술 논문</p>
+                                    {data.references.map((ref, idx) => (
+                                        <div key={idx} className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors group cursor-pointer">
+                                            <FileText className="w-5 h-5 text-gray-400 group-hover:text-blue-500 flex-shrink-0" />
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-700 leading-tight mb-1">{ref}</p>
+                                                <p className="text-xs text-gray-400">학술 자료</p>
+                                            </div>
                                         </div>
-                                    </a>
-                                    <a href="#" className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors group">
-                                        <Download className="w-5 h-5 text-gray-400 group-hover:text-blue-500 flex-shrink-0" />
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-700 leading-tight mb-1">신재생에너지 데이터 센터 통계</p>
-                                            <p className="text-xs text-gray-400">데이터셋</p>
-                                        </div>
-                                    </a>
+                                    ))}
                                 </div>
                             </div>
                         </div>
-
-                        {/* Recommendations */}
-
                     </div>
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function ReportPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <ReportPageContent />
+        </Suspense>
     );
 }
