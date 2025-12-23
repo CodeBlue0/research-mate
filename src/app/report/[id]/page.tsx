@@ -178,27 +178,7 @@ export default function ReportPage() {
                         </div>
 
                         {/* Recommendations */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm">
-                            <h3 className="font-bold text-slate-800 mb-4">관련 주제 추천</h3>
-                            <div className="space-y-4">
-                                {[
-                                    { title: '풍력 발전기의 날개 모양에 따른 효율 비교', tag: '물리학 I • 실험', color: 'bg-yellow-500' },
-                                    { title: '염료 감응형 태양전지(DSSC) 제작 및 원리 탐구', tag: '화학 I • 심화', color: 'bg-green-500' },
-                                    { title: '펠티어 소자를 이용한 열전 발전 실험', tag: '통합과학 • 융합', color: 'bg-cyan-500' },
-                                ].map((item, idx) => (
-                                    <div key={idx} className="flex gap-4 items-start group cursor-pointer">
-                                        <div className={`w-12 h-12 rounded-lg ${item.color} opacity-80 flex-shrink-0`} />
-                                        <div>
-                                            <h4 className="font-bold text-sm text-slate-800 leading-tight mb-1 group-hover:text-blue-600 transition-colors">{item.title}</h4>
-                                            <p className="text-xs text-gray-500">{item.tag}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <Button variant="ghost" className="w-full mt-4 text-blue-600 text-sm font-bold hover:bg-blue-50 hover:text-blue-700">
-                                더 보기
-                            </Button>
-                        </div>
+
                     </div>
                 </div>
             </div>
