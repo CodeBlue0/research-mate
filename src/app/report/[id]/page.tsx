@@ -6,8 +6,13 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Share2, Bookmark, ChevronRight, FileText, Download, Book } from 'lucide-react';
 import { MOCK_BLUEPRINT } from '@/lib/data';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
 export default function ReportPage() {
+    const params = useParams();
+    const id = params?.id as string;
+
     return (
         <div className="bg-slate-50 min-h-screen py-10">
             <div className="container mx-auto max-w-4xl px-4">
@@ -105,24 +110,36 @@ export default function ReportPage() {
 
                         {/* Inquiry Guide */}
                         <section>
-                            <h2 className="text-xl font-bold flex items-center gap-2 text-blue-600 mb-4 ml-2">
-                                <div className="w-2 h-2 rounded-full bg-blue-600" /> 탐구 가이드
-                            </h2>
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl font-bold flex items-center gap-2 text-blue-600 ml-2">
+                                    <div className="w-2 h-2 rounded-full bg-blue-600" /> 탐구 가이드
+                                </h2>
+                                <Button
+                                    variant="link"
+                                    className="text-blue-600 font-semibold p-0 h-auto"
+                                    onClick={() => window.location.href = `${window.location.pathname}/inquiry-guide`}
+                                >
+                                    자세히 보기 <ChevronRight className="w-4 h-4 ml-1" />
+                                </Button>
+                            </div>
                             <div className="space-y-4">
                                 {[
                                     { step: 1, title: '가설 설정', desc: '"온도가 10도 상승할 때마다 발전 효율은 약 X% 감소할 것이다"와 같이 정량적인 가설을 세워보세요.' },
                                     { step: 2, title: '실험 설계', desc: '할로겐 램프로 태양광을 모사하고, 펠티어 소자나 가열판을 이용해 패널의 온도를 통제하는 방법을 구상합니다.' },
                                     { step: 3, title: '데이터 분석', desc: '온도별 전압-전류 그래프를 엑셀이나 파이썬으로 시각화하여 비교 분석합니다.' },
+                                    { step: 4, title: '보고서 작성', desc: '서론-본론-결론의 구조를 갖춘 논리적인 탐구 보고서를 작성합니다.' },
                                 ].map((guide) => (
-                                    <div key={guide.step} className="bg-white rounded-xl p-6 shadow-sm flex gap-6 items-start">
-                                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center text-lg">
-                                            {guide.step}
+                                    <Link key={guide.step} href={`/report/${id}/inquiry-guide/step-${guide.step}`} className="block group">
+                                        <div className="bg-white rounded-xl p-6 shadow-sm flex gap-6 items-start border border-transparent hover:border-blue-200 transition-all hover:shadow-md">
+                                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center text-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                                {guide.step}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-lg mb-1 group-hover:text-blue-600 transition-colors">{guide.title}</h3>
+                                                <p className="text-gray-600 text-sm leading-relaxed">{guide.desc}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="font-bold text-lg mb-1">{guide.title}</h3>
-                                            <p className="text-gray-600 text-sm leading-relaxed">{guide.desc}</p>
-                                        </div>
-                                    </div>
+                                    </Link>
                                 ))}
                             </div>
                         </section>
