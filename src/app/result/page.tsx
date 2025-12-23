@@ -39,12 +39,14 @@ function ResultPageContent() {
             setLoading(true);
             try {
                 const subject = searchParams.get('subject') || '';
-                const interests = searchParams.get('interests') || ''; // Assuming 'interests' might be passed or just use subject
+                const interests = searchParams.get('interests') || '';
+                const isExpanded = searchParams.get('expanded') === 'true';
+                const centerCategory = searchParams.get('category') || '';
 
                 const res = await fetch('/api/topics', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ subject, interests })
+                    body: JSON.stringify({ subject, interests, isExpanded, centerCategory })
                 });
 
                 if (!res.ok) throw new Error("Failed to fetch topics");
@@ -80,7 +82,7 @@ function ResultPageContent() {
     const handleNodeClick = async (node: Node) => {
         setSelectedNode(node);
 
-        if (node.type === 'leaf') {
+        if (node.type === 'leaf' || node.type === 'expanded-center') {
             setBlueprintLoading(true);
             setBlueprint(null);
             try {
@@ -107,6 +109,15 @@ function ResultPageContent() {
         // Pass the topic title to the report page
         const topicTitle = encodeURIComponent(selectedNode.data.label);
         router.push(`/report/1?topic=${topicTitle}`);
+    };
+
+    const handleExpandTopic = () => {
+        if (!selectedNode) return;
+        const newSubject = selectedNode.data.label;
+        const currentInterests = searchParams.get('interests') || '';
+        const category = selectedNode.data.category || '';
+        setSelectedNode(null);
+        router.push(`/result?subject=${encodeURIComponent(newSubject)}&interests=${encodeURIComponent(currentInterests)}&expanded=true&category=${encodeURIComponent(category)}`);
     };
 
     return (
@@ -145,7 +156,7 @@ function ResultPageContent() {
                     <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
                         {/* Mind Map Canvas */}
                         <div
-                            className={`w-full h-full transition-transform duration-300 ease-in-out ${selectedNode && selectedNode.type === 'leaf' ? '-translate-x-[200px]' : ''
+                            className={`w-full h-full transition-transform duration-300 ease-in-out ${selectedNode && (selectedNode.type === 'leaf' || selectedNode.type === 'expanded-center') ? '-translate-x-[200px]' : ''
                                 }`}
                         >
                             {/* Key forces remount if nodes change, simple way to handle initialNodes prop */}
@@ -161,7 +172,7 @@ function ResultPageContent() {
                 )}
 
                 {/* Right Drawer / Sidebar for Detail */}
-                {selectedNode && selectedNode.type === 'leaf' && (
+                {selectedNode && (selectedNode.type === 'leaf' || selectedNode.type === 'expanded-center') && (
                     <div className="absolute right-0 top-2 bottom-4 w-[400px] bg-white shadow-2xl border border-r-0 rounded-l-3xl p-6 animate-in slide-in-from-right duration-300 overflow-y-auto z-30">
                         <div className="flex justify-between items-start mb-6">
                             <div>
@@ -246,8 +257,12 @@ function ResultPageContent() {
                             >
                                 이 주제로 보고서 개요 작성하기
                             </Button>
-                            <Button variant="outline" className="w-full h-12">
-                                비슷한 주제 추천하기
+                            <Button
+                                variant="outline"
+                                className="w-full h-12 text-lg font-bold border-2 hover:bg-slate-50 transition-colors"
+                                onClick={handleExpandTopic}
+                            >
+                                🔗 비슷한 주제 추천하기
                             </Button>
                         </div>
                     </div>

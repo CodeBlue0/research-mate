@@ -10,7 +10,7 @@ import ReactFlow, {
     NodeTypes,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { CentralNode, LeafNode } from './CustomNode';
+import { CentralNode, LeafNode, ExpandedCenterNode } from './CustomNode';
 
 interface MindMapProps {
     initialNodes: Node[];
@@ -25,7 +25,8 @@ const MindMap: React.FC<MindMapProps> = ({ initialNodes, initialEdges, onNodeCli
 
     const nodeTypes = useMemo<NodeTypes>(() => ({
         central: CentralNode,
-        leaf: LeafNode
+        leaf: LeafNode,
+        'expanded-center': ExpandedCenterNode
     }), []);
 
     const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
