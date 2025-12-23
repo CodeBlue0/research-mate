@@ -111,21 +111,30 @@ function ResultPageContent() {
 
     return (
         <div className="h-[calc(100vh-64px)] bg-slate-50 flex flex-col overflow-hidden">
-            {/* Top Bar */}
-            <div className="bg-white border-b px-6 py-3 flex items-center justify-between shadow-sm z-10">
-                <div>
-                    <h1 className="font-bold text-lg text-slate-800">탐구 주제 설정</h1>
-                    <p className="text-xs text-gray-500">
-                        {loading ? 'AI가 주제를 분석하고 있습니다...' : '난이도와 관심 분야를 조절하여 나에게 딱 맞는 심화 주제를 찾아보세요.'}
-                    </p>
-                </div>
-                <Button variant="outline" size="icon" className="rounded-full shadow-sm" onClick={() => window.location.reload()}>
-                    <RefreshCw className="w-4 h-4" />
-                </Button>
-            </div>
-
             {/* Main Content Area */}
             <div className="flex-1 relative">
+                {/* Floating Title Card */}
+                {!loading && (
+                    <div className="absolute top-4 left-8 z-10 fade-in slide-in-from-top-4 duration-500">
+                        <Card className="bg-white/90 backdrop-blur-sm shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 p-7 max-w-sm rounded-[2rem]">
+                            <div className="flex items-center gap-4 mb-3">
+                                <h1 className="font-bold text-2xl text-slate-800 tracking-tight">탐구 주제 설정</h1>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="rounded-full w-8 h-8 border-slate-200 hover:bg-slate-100 hover:text-slate-900"
+                                    onClick={() => window.location.reload()}
+                                >
+                                    <RefreshCw className="w-4 h-4 text-slate-500" />
+                                </Button>
+                            </div>
+                            <p className="text-slate-500 leading-relaxed text-[15px] font-medium">
+                                난이도와 관심 분야를 조절하여<br />
+                                나에게 딱 맞는 심화 주제를 찾아보세요.
+                            </p>
+                        </Card>
+                    </div>
+                )}
                 {loading ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-20">
                         <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
@@ -153,7 +162,7 @@ function ResultPageContent() {
 
                 {/* Right Drawer / Sidebar for Detail */}
                 {selectedNode && selectedNode.type === 'leaf' && (
-                    <div className="absolute right-0 top-0 bottom-0 w-[400px] bg-white shadow-2xl border-l p-6 animate-in slide-in-from-right duration-300 overflow-y-auto z-30">
+                    <div className="absolute right-0 top-2 bottom-4 w-[400px] bg-white shadow-2xl border border-r-0 rounded-l-3xl p-6 animate-in slide-in-from-right duration-300 overflow-y-auto z-30">
                         <div className="flex justify-between items-start mb-6">
                             <div>
                                 <span className={`${selectedNode.data.iconColor || 'bg-blue-100 text-blue-700'} text-xs font-bold px-2 py-1 rounded mb-2 inline-block`}>
