@@ -39,17 +39,21 @@ function ResultPageContent() {
             <div className="flex-1 relative">
                 <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
                     {/* Mind Map Canvas */}
-                    <div className="w-full h-full">
+                    <div
+                        className={`w-full h-full transition-transform duration-300 ease-in-out ${selectedNode && selectedNode.type === 'leaf' ? '-translate-x-[200px]' : ''
+                            }`}
+                    >
                         <MindMap
                             initialNodes={INITIAL_NODES}
                             initialEdges={INITIAL_EDGES}
                             onNodeClick={handleNodeClick}
+                            onPaneClick={() => setSelectedNode(null)}
                         />
                     </div>
                 </div>
 
                 {/* Right Drawer / Sidebar for Detail */}
-                {selectedNode && selectedNode.id === 'leaf-1' && (
+                {selectedNode && selectedNode.type === 'leaf' && (
                     <div className="absolute right-0 top-0 bottom-0 w-[400px] bg-white shadow-2xl border-l p-6 animate-in slide-in-from-right duration-300 overflow-y-auto">
                         <div className="flex justify-between items-start mb-6">
                             <div>
