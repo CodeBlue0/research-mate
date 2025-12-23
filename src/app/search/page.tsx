@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,22 +8,157 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowRight, Sparkles, Zap, GraduationCap, Microscope } from 'lucide-react';
+import { ArrowRight, Sparkles, Zap, GraduationCap, Microscope, ChevronDown, Check } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 function SearchPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const subjectParam = searchParams.get('subject');
 
-    const [topic, setTopic] = useState('');
+    // Curriculum State keys
+    const [largeUnit, setLargeUnit] = useState('');
+    const [mediumUnit, setMediumUnit] = useState('');
+    const [smallUnit, setSmallUnit] = useState('');
     const [major, setMajor] = useState('');
     const [difficulty, setDifficulty] = useState([50]); // 0: Basic, 50: Applied, 100: Advanced
 
+    // Supabase State
+    const [mathSubjects, setMathSubjects] = useState<{ id: number, name: string }[]>([]);
+    const [loadingSubjects, setLoadingSubjects] = useState(true);
+    const [selectedSubject, setSelectedSubject] = useState<string>('');
+    const [isSubjectOpen, setIsSubjectOpen] = useState(false);
+    const subjectWrapperRef = useRef<HTMLDivElement>(null);
+
+    // Curriculum State
+    const [curriculum, setCurriculum] = useState<{ id: number, unit_large: string, unit_medium: string, unit_small: string }[]>([]);
+
+    // Error State
+    const [errors, setErrors] = useState({
+        subject: false,
+        unit: false,
+        major: false
+    });
+
+    // Derived Options
+    const uniqueLargeUnits = React.useMemo(() => {
+        const units = new Set(curriculum.map(c => c.unit_large).filter(Boolean));
+        return Array.from(units);
+    }, [curriculum]);
+
+    const uniqueMediumUnits = React.useMemo(() => {
+        if (!largeUnit) return [];
+        const units = new Set(
+            curriculum
+                .filter(c => c.unit_large === largeUnit)
+                .map(c => c.unit_medium)
+                .filter(Boolean)
+        );
+        return Array.from(units);
+    }, [curriculum, largeUnit]);
+
+    const uniqueSmallUnits = React.useMemo(() => {
+        if (!mediumUnit || mediumUnit === '_none_') return [];
+        const units = new Set(
+            curriculum
+                .filter(c => c.unit_medium === mediumUnit)
+                .map(c => c.unit_small)
+                .filter(Boolean)
+        );
+        return Array.from(units);
+    }, [curriculum, mediumUnit]);
+
+
+    // Click outside handler
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (subjectWrapperRef.current && !subjectWrapperRef.current.contains(event.target as Node)) {
+                setIsSubjectOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
+    // Fetch Math Subjects
+    useEffect(() => {
+        const fetchSubjects = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('math_subjects')
+                    .select('*')
+                    .order('id', { ascending: true });
+
+                if (error) throw error;
+                if (data) {
+                    setMathSubjects(data);
+                }
+
+            } catch (error) {
+                console.error('Error fetching subjects:', error);
+            } finally {
+                setLoadingSubjects(false);
+            }
+        };
+
+        fetchSubjects();
+    }, []);
+
+    // Fetch Curriculum when Subject Changes
+    useEffect(() => {
+        const fetchCurriculum = async () => {
+            if (!selectedSubject) return;
+
+            try {
+                const { data, error } = await supabase
+                    .from('math_curriculum')
+                    .select('*')
+                    .eq('subject', selectedSubject)
+                    .order('id', { ascending: true });
+
+                if (error) throw error;
+                if (data) {
+                    setCurriculum(data);
+                    // Reset selections
+                    setLargeUnit('');
+                    setMediumUnit('');
+                    setSmallUnit('');
+                }
+            } catch (error) {
+                console.error('Error fetching curriculum:', error);
+            }
+        };
+
+        fetchCurriculum();
+    }, [selectedSubject]);
+
     const handleSearch = () => {
+        // Reset errors
+        setErrors({ subject: false, unit: false, major: false });
+
         // Navigate to result page with query params
+        // Use the most specific selected unit as the topic
+        // Filter out '_none_' and empty strings
+        const topicCandidates = [smallUnit, mediumUnit, largeUnit].filter(t => t && t !== '_none_');
+        const finalTopic = topicCandidates[0]; // Most specific one first (Small -> Medium -> Large)
+
+        const newErrors = {
+            subject: !selectedSubject,
+            unit: !finalTopic,
+            major: major.trim().length === 0
+        };
+
+        if (newErrors.subject || newErrors.unit || newErrors.major) {
+            setErrors(newErrors);
+            return;
+        }
+
         const query = new URLSearchParams({
-            subject: subjectParam || '',
-            topic,
+            subject: 'math', // Force math as per requirement
+            selectedSubject, // Pass the specific math subject chosen
+            topic: finalTopic, // Keyword
             major,
             difficulty: difficulty[0].toString()
         });
@@ -40,7 +175,7 @@ function SearchPageContent() {
 
     return (
         <div className="bg-slate-50 min-h-[calc(100vh-64px)] py-12">
-            <div className="container mx-auto max-w-3xl px-4">
+            <div className="container mx-auto max-w-4xl px-4">
                 <div className="text-center mb-12">
                     <div className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-600 font-bold text-sm mb-4">
                         STEP 2. 탐구 설정
@@ -53,43 +188,172 @@ function SearchPageContent() {
                     </p>
                 </div>
 
-                <Card className="mb-8 border-none shadow-lg">
+                <Card className="mb-8 border-none shadow-lg overflow-visible">
                     <CardContent className="p-8 space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="space-y-2">
-                                <Label className="font-bold">과목 선택</Label>
-                                <Select defaultValue={subjectParam === 'math' ? '확률과 통계' : '확률과 통계'}>
-                                    <SelectTrigger className="h-12 bg-gray-50/50">
-                                        <SelectValue placeholder="과목 선택" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="확률과 통계">확률과 통계</SelectItem>
-                                        <SelectItem value="미적분">미적분</SelectItem>
-                                        <SelectItem value="기하">기하</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                        {/* Subject Selection */}
+                        <div className="space-y-4">
+                            <div className="space-y-2 relative" ref={subjectWrapperRef}>
+                                <Label className="font-bold text-lg">어떤 과목을 공부하고 있나요?</Label>
+                                <div className="relative">
+                                    <Input
+                                        className={`h-14 text-lg pr-10 border-slate-200 focus:border-blue-500 transition-colors ${errors.subject ? 'border-red-500 bg-red-50 placeholder:text-red-400' : 'bg-gray-50/50'
+                                            }`}
+                                        placeholder={loadingSubjects ? "로딩 중..." : "과목을 선택해주세요 (예: 공통 수학1)"}
+                                        value={selectedSubject}
+                                        onChange={(e) => {
+                                            setSelectedSubject(e.target.value);
+                                            setIsSubjectOpen(true);
+                                            if (errors.subject) setErrors(prev => ({ ...prev, subject: false }));
+                                        }}
+                                        onFocus={() => setIsSubjectOpen(true)}
+                                        disabled={loadingSubjects}
+                                    />
+                                    <div
+                                        className="absolute right-4 top-4 cursor-pointer text-gray-400"
+                                        onClick={() => !loadingSubjects && setIsSubjectOpen(!isSubjectOpen)}
+                                    >
+                                        <ChevronDown className="w-6 h-6" />
+                                    </div>
+                                </div>
 
-                            <div className="space-y-2">
-                                <Label className="font-bold">현재 배우는 주제 (키워드)</Label>
-                                <Input
-                                    className="h-12 bg-gray-50/50"
-                                    placeholder="예: 큰 수의 법칙"
-                                    value={topic}
-                                    onChange={(e) => setTopic(e.target.value)}
-                                />
-                            </div>
+                                {isSubjectOpen && mathSubjects.length > 0 && (
+                                    <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-auto">
+                                        {/* Matches */}
+                                        {mathSubjects
+                                            .filter(sub => sub.name.toLowerCase().includes(selectedSubject.toLowerCase()))
+                                            .map((sub) => (
+                                                <div
+                                                    key={sub.id}
+                                                    className="px-6 py-4 hover:bg-blue-50 cursor-pointer text-base text-slate-900 font-bold bg-blue-50/30 transition-colors flex items-center justify-between border-b border-slate-100 last:border-0"
+                                                    onClick={() => {
+                                                        setSelectedSubject(sub.name);
+                                                        setIsSubjectOpen(false);
+                                                        if (errors.subject) setErrors(prev => ({ ...prev, subject: false }));
+                                                    }}
+                                                >
+                                                    {sub.name}
+                                                    {selectedSubject === sub.name && <Check className="w-5 h-5 text-blue-600" />}
+                                                </div>
+                                            ))
+                                        }
 
-                            <div className="space-y-2">
-                                <Label className="font-bold">희망 진로 / 계열</Label>
-                                <Input
-                                    className="h-12 bg-gray-50/50"
-                                    placeholder="예: 컴퓨터공학, 의학"
-                                    value={major}
-                                    onChange={(e) => setMajor(e.target.value)}
-                                />
+                                        {/* Separator if needed (optional, using bg color to distinguish matches) */}
+
+                                        {/* Others */}
+                                        {mathSubjects
+                                            .filter(sub => !sub.name.toLowerCase().includes(selectedSubject.toLowerCase()))
+                                            .map((sub) => (
+                                                <div
+                                                    key={sub.id}
+                                                    className="px-6 py-4 hover:bg-blue-50 cursor-pointer text-base text-slate-500 font-medium transition-colors flex items-center justify-between border-b border-slate-100 last:border-0"
+                                                    onClick={() => {
+                                                        setSelectedSubject(sub.name);
+                                                        setIsSubjectOpen(false);
+                                                        if (errors.subject) setErrors(prev => ({ ...prev, subject: false }));
+                                                    }}
+                                                >
+                                                    {sub.name}
+                                                    {selectedSubject === sub.name && <Check className="w-5 h-5 text-blue-600" />}
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
+                                )}
                             </div>
                         </div>
+
+                        <div className="border-t border-slate-100 my-6"></div>
+
+                        {/* Hierarchical Unit Selection */}
+                        <div className="space-y-4">
+                            <Label className="font-bold text-lg">현재 배우고 있는 단원은 어디인가요?</Label>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Large Unit */}
+                                <div className="space-y-2">
+                                    <Label className="text-sm text-gray-500 font-medium">대단원</Label>
+                                    <Select
+                                        value={largeUnit}
+                                        onValueChange={(val) => {
+                                            setLargeUnit(val);
+                                            setMediumUnit('');
+                                            setSmallUnit('');
+                                            if (errors.unit) setErrors(prev => ({ ...prev, unit: false }));
+                                        }}
+                                        disabled={!selectedSubject}
+                                    >
+                                        <SelectTrigger className={`h-12 ${errors.unit ? 'border-red-500 bg-red-50 text-red-900' : 'bg-gray-50/50'}`}>
+                                            <SelectValue placeholder="대단원 선택" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {uniqueLargeUnits.map((unit) => (
+                                                <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* Medium Unit */}
+                                <div className="space-y-2">
+                                    <Label className="text-sm text-gray-500 font-medium">중단원</Label>
+                                    <Select
+                                        value={mediumUnit}
+                                        onValueChange={(val) => {
+                                            setMediumUnit(val);
+                                            setSmallUnit('');
+                                        }}
+                                        disabled={!largeUnit}
+                                    >
+                                        <SelectTrigger className="h-12 bg-gray-50/50">
+                                            <SelectValue placeholder="중단원 선택" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="_none_" className="text-gray-500">선택 안 함</SelectItem>
+                                            {uniqueMediumUnits.map((unit) => (
+                                                <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* Small Unit */}
+                                <div className="space-y-2">
+                                    <Label className="text-sm text-gray-500 font-medium">소단원</Label>
+                                    <Select
+                                        value={smallUnit}
+                                        onValueChange={setSmallUnit}
+                                        disabled={!mediumUnit || mediumUnit === '_none_'}
+                                    >
+                                        <SelectTrigger className="h-12 bg-gray-50/50">
+                                            <SelectValue placeholder="소단원 선택" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="_none_" className="text-gray-500">선택 안 함</SelectItem>
+                                            {uniqueSmallUnits.map((unit) => (
+                                                <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-slate-100 my-6"></div>
+
+                        {/* Major / Career */}
+                        <div className="space-y-4">
+                            <Label className="font-bold text-lg">희망 진로, 관심 분야</Label>
+                            <Input
+                                className={`h-14 text-lg focus:border-blue-500 transition-colors ${errors.major ? 'border-red-500 bg-red-50 placeholder:text-red-400' : 'bg-gray-50/50'
+                                    }`}
+                                placeholder="예: 컴퓨터공학, 의학, 게임 이론, 인공지능"
+                                value={major}
+                                onChange={(e) => {
+                                    setMajor(e.target.value);
+                                    if (errors.major) setErrors(prev => ({ ...prev, major: false }));
+                                }}
+                            />
+                        </div>
+
                     </CardContent>
                 </Card>
 
@@ -129,18 +393,19 @@ function SearchPageContent() {
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {[
-                                { type: '기초', label: '생활 속 예시', desc: '일상적 현상을 교과 원리로 설명', color: 'bg-green-50 text-green-700' },
-                                { type: '응용', label: '교과 연계', desc: '교과 개념을 다른 분야와 융합', color: 'bg-blue-50 text-blue-700' },
-                                { type: '심화', label: '논문/전공 기초', desc: '전문 지식 및 학술 논문 활용', color: 'bg-purple-50 text-purple-700' }
+                                { type: '기초', label: '생활 속 예시', desc: '일상적 현상을 교과 원리로 설명', color: 'bg-green-50 text-green-700', val: 0 },
+                                { type: '응용', label: '교과 연계', desc: '교과 개념을 다른 분야와 융합', color: 'bg-blue-50 text-blue-700', val: 50 },
+                                { type: '심화', label: '논문/전공 기초', desc: '전문 지식 및 학술 논문 활용', color: 'bg-purple-50 text-purple-700', val: 100 }
                             ].map((item, idx) => (
                                 <div
                                     key={idx}
-                                    className={`p-4 rounded-xl border transition-colors ${(item.type === '기초' && difficulty[0] < 33) ||
+                                    className={`p-4 rounded-xl border transition-all cursor-pointer hover:shadow-md ${(item.type === '기초' && difficulty[0] < 33) ||
                                         (item.type === '응용' && difficulty[0] >= 33 && difficulty[0] <= 66) ||
                                         (item.type === '심화' && difficulty[0] > 66)
-                                        ? 'border-blue-500 bg-blue-50/50'
-                                        : 'border-slate-100 bg-slate-50'
+                                        ? 'border-blue-500 bg-blue-50/50 ring-2 ring-blue-100'
+                                        : 'border-slate-100 bg-slate-50 hover:bg-white hover:border-slate-200'
                                         }`}
+                                    onClick={() => setDifficulty([item.val])}
                                 >
                                     <div className="flex items-center gap-2 mb-2">
                                         <span className={`w-2 h-2 rounded-full ${item.type === '기초' ? 'bg-green-500' : item.type === '응용' ? 'bg-blue-500' : 'bg-purple-500'}`} />

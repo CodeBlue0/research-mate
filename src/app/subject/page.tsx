@@ -40,32 +40,29 @@ export default function SubjectPage() {
                     </p>
                 </div>
 
-                {/* Search Bar */}
-                <div className="relative mb-8">
-                    <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder="관심 있는 교과목이나 키워드를 검색해보세요"
-                        className="w-full h-12 pl-12 pr-4 rounded-xl border-gray-200 border shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                </div>
-
                 {/* Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-                    {subjects.map((sub) => (
-                        <Card
-                            key={sub.id}
-                            onClick={() => handleSelect(sub.id)}
-                            className={`cursor-pointer transition-all duration-200 hover:shadow-md border-2 aspect-[4/3] flex flex-col items-center justify-center space-y-4
-                 ${selected === sub.id ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : 'border-transparent hover:border-gray-200'}
-               `}
-                        >
-                            <div className={`p-4 rounded-full ${sub.bg} ${sub.color}`}>
-                                <sub.icon className="w-8 h-8" />
-                            </div>
-                            <span className="font-bold text-lg text-slate-700">{sub.label}</span>
-                        </Card>
-                    ))}
+                    {subjects.filter(sub => sub.id !== 'etc').map((sub) => {
+                        const isMath = sub.id === 'math';
+                        return (
+                            <Card
+                                key={sub.id}
+                                onClick={() => isMath && handleSelect(sub.id)}
+                                className={`transition-all duration-200 border-2 aspect-[4/3] flex flex-col items-center justify-center space-y-4
+                                    ${isMath
+                                        ? 'cursor-pointer hover:shadow-md border-transparent hover:border-gray-200'
+                                        : 'cursor-not-allowed opacity-40 grayscale bg-gray-100 border-transparent'
+                                    }
+                                    ${selected === sub.id && isMath ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : ''}
+                                `}
+                            >
+                                <div className={`p-4 rounded-full ${sub.bg} ${sub.color}`}>
+                                    <sub.icon className="w-8 h-8" />
+                                </div>
+                                <span className="font-bold text-lg text-slate-700">{sub.label}</span>
+                            </Card>
+                        );
+                    })}
                 </div>
 
 
