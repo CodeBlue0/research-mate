@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, Suspense, useEffect } from 'react';
+import React, { useState, Suspense, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -19,68 +19,295 @@ interface ReportData {
     references: string[];
 }
 
+// Tree-based History Node
+interface HistoryNode {
+    id: string; // unique ID
+    nodes: Node[];
+    edges: Edge[];
+    data: {
+        subject: string;
+        interests: string;
+        isExpanded: boolean;
+        centerCategory: string;
+    };
+    parent: HistoryNode | null;
+    children: HistoryNode[];
+}
+
 function ResultPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
     // Data States
-    const [nodes, setNodes] = useState<Node[]>([]);
-    const [edges, setEdges] = useState<Edge[]>([]);
+    // Navigation State
+    const [historyRoot, setHistoryRoot] = useState<HistoryNode | null>(null);
+    const [currentNode, setCurrentNode] = useState<HistoryNode | null>(null);
     const [loading, setLoading] = useState(true);
+    // history array for API exclusion (flattened list of seen topics)
+    const [seenTopics, setSeenTopics] = useState<string[]>([]);
 
     // Selection & Blueprint States
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [blueprint, setBlueprint] = useState<ReportData | null>(null);
     const [blueprintLoading, setBlueprintLoading] = useState(false);
 
+    // Optimistic Protection: Prevent double fetch in strict mode
+    const isInitialized = useRef(false);
+
     // Initial Fetch
-    useEffect(() => {
-        const fetchTopics = async () => {
-            setLoading(true);
-            try {
-                const subject = searchParams.get('subject') || '';
-                const interests = searchParams.get('interests') || ''; // Assuming 'interests' might be passed or just use subject
+    // Initial Fetch Helper
+    const fetchTopicData = async (params: { subject: string, interests: string, isExpanded: boolean, centerCategory: string }, currentHistory: string[]) => {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/topics', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...params,
+                    previousTopics: currentHistory
+                })
+            });
 
-                const res = await fetch('/api/topics', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ subject, interests })
-                });
+            if (!res.ok) throw new Error("Failed to fetch topics");
 
-                if (!res.ok) throw new Error("Failed to fetch topics");
+            const data = await res.json();
 
-                const data = await res.json();
+            // Generate Edges based on nodes
+            const generatedEdges: Edge[] = data.nodes
+                .filter((n: Node) => n.id !== 'root')
+                .map((n: Node) => ({
+                    id: `e-${n.id}`,
+                    source: 'root',
+                    target: n.id,
+                    type: 'straight',
+                    animated: true,
+                    style: { stroke: '#e2e8f0', strokeWidth: 2 }
+                }));
 
-                // Generate Edges based on nodes
-                const generatedEdges: Edge[] = data.nodes
-                    .filter((n: Node) => n.id !== 'root')
-                    .map((n: Node) => ({
-                        id: `e-${n.id}`,
-                        source: 'root',
-                        target: n.id,
-                        type: 'straight',
-                        animated: true,
-                        style: { stroke: '#e2e8f0', strokeWidth: 2 }
-                    }));
+            return { nodes: data.nodes, edges: generatedEdges };
 
-                setNodes(data.nodes);
-                setEdges(generatedEdges);
-            } catch (error) {
-                console.error(error);
-                // Fallback or error state could be handled here
-            } finally {
-                setLoading(false);
-            }
+        } catch (error) {
+            console.error(error);
+            return null;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Support Function to add new node to tree
+    const addNewNodeToTree = (data: { nodes: Node[], edges: Edge[] }, params: any) => {
+        if (!currentNode) return;
+
+        const newNode: HistoryNode = {
+            id: Date.now().toString(),
+            nodes: data.nodes,
+            edges: data.edges,
+            data: params,
+            parent: currentNode,
+            children: [],
         };
 
-        fetchTopics();
+        currentNode.children.push(newNode);
+        setCurrentNode(newNode);
+
+        // Update seen topics
+        const newTopicLabels = data.nodes
+            .filter((n: Node) => n.type === 'leaf')
+            .map((n: Node) => n.data.label);
+        setSeenTopics(prev => [...prev, ...newTopicLabels]);
+    };
+
+    // Initial Fetch
+    useEffect(() => {
+        const init = async () => {
+            const subject = searchParams.get('subject') || '';
+            const interests = searchParams.get('interests') || '';
+            const isExpanded = searchParams.get('expanded') === 'true';
+            const centerCategory = searchParams.get('category') || '';
+            const params = { subject, interests, isExpanded, centerCategory };
+
+            setSeenTopics([]); // Reset
+            const data = await fetchTopicData(params, []);
+
+            if (data) {
+                const root: HistoryNode = {
+                    id: 'root-history',
+                    nodes: data.nodes,
+                    edges: data.edges,
+                    data: params,
+                    parent: null,
+                    children: [],
+                };
+                setHistoryRoot(root);
+                setCurrentNode(root);
+
+                const newTopicLabels = data.nodes.filter((n: Node) => n.type === 'leaf').map((n: Node) => n.data.label);
+                setSeenTopics(newTopicLabels);
+            }
+        };
+        if (!isInitialized.current) {
+            isInitialized.current = true;
+            init();
+        }
     }, [searchParams]);
+
+    const handlePinClick = (nodeId: string) => {
+        if (!currentNode) return;
+
+        const updatedNodes = currentNode.nodes.map(node => {
+            if (node.id === nodeId) {
+                return {
+                    ...node,
+                    data: { ...node.data, isPinned: !node.data.isPinned }
+                };
+            }
+            return node;
+        });
+
+        setCurrentNode({ ...currentNode, nodes: updatedNodes });
+    };
+
+    const handleRefresh = async () => {
+        if (!currentNode) return;
+
+        // 1. Identify Pinned Nodes
+        const pinnedNodes = currentNode.nodes.filter(n => n.data.isPinned);
+        const pinnedCount = pinnedNodes.length;
+
+        // If all 5 leaf nodes are pinned, nothing to refresh (Root is not pinnable usually)
+        // Root is id 'root'. Leaves are others.
+        // Assuming max 5 leaves.
+        if (pinnedCount >= 5) {
+            // Optional: Show toast
+            return;
+        }
+
+        // 2. Fetch New Topics
+        // We need (5 - pinnedCount) new topics.
+        // The API returns 5. We'll take the first k.
+        const params = currentNode.data;
+        const data = await fetchTopicData(params, seenTopics);
+
+        if (!data || !data.nodes || data.nodes.length <= 1) { // <= 1 meaning only root or empty
+            // Ideally show a toast here
+            console.warn("Refresh returned insufficient topics");
+            return;
+        }
+
+        // 3. Merge Nodes
+        // New nodes come with IDs like 'node-0', 'node-1'... from API mock/result.
+        // We need to ensure unique IDs if we merge.
+        // Pinned nodes keep their IDs.
+        // New nodes need new IDs to avoid collision if they reuse 'node-0'.
+        // Actually fetchTopicData/API likely returns 'node-0'...'node-4'.
+        // If I pin 'node-0', and fetch gets 'node-0', I have two 'node-0's?
+        // I should re-index the NEW nodes.
+
+        const amountNeeded = 5 - pinnedCount;
+        const newLeaves = data.nodes
+            .filter((n: Node) => n.id !== 'root')
+            .slice(0, amountNeeded)
+            .map((n: Node, index: number) => ({
+                ...n,
+                id: `node-${Date.now()}-${index}`, // Ensure unique ID
+                position: { x: 0, y: 0 } // Layout will handle this? Or I need to calculate?
+                // The MindMap component likely relies on `getLayoutedElements` or initial positions.
+                // If I pass new nodes with (0,0), `MindMap` (if it handles layout) handles it.
+                // Wait, `MindMap.tsx` does NOT auto-layout on prop change unless `dagre` logic is there.
+                // Looking at `fetchTopicData`:
+                // It returns nodes with positions set by API/Server?
+                // `api/topics/route.ts` calculates positions.
+                // Pinned nodes HAVE positions.
+                // New nodes have positions for slots 0..k.
+                // Using simple merge might overlap positions.
+                // Ideally: 
+                // Slot 1: Pinned Node A.
+                // Slot 2: New Node.
+                // ...
+                // I should probably Recalculate Layout.
+                // Or simply accept that API gives coordinates for 5 nodes.
+                // If I pin Node at (100, 100).
+                // API gives Node at (100, 100).
+                // Collision.
+                // Implementation Shortcut:
+                // Just take pinned nodes and new nodes.
+                // Let's ASSUME the simple merge is "good enough" for V1, or better:
+                // Use the POSITIONS from the API for the new nodes, but map them to the UNFILLED slots?
+                // This is complex.
+                //
+                // Simplest Approach for User Request:
+                // "Pinned nodes stay in place".
+                // Keep pinned nodes AS IS.
+                // Generate new nodes.
+                // Assign new nodes to the POSITIONS of the unpinned (removed) nodes.
+                // This preserves layout perfectly.
+            }));
+
+        const unpinnedOriginalNodes = currentNode.nodes.filter(n => n.id !== 'root' && !n.data.isPinned);
+
+        // Map available slots (unpinned nodes) to new content (if available) or keep old content
+        const filledSlots = unpinnedOriginalNodes.map((oldNode, i) => {
+            const newContent = newLeaves[i];
+            if (newContent) {
+                return {
+                    ...newContent,
+                    id: oldNode.id, // Keep ID for stable transition
+                    position: oldNode.position, // Keep Position
+                    data: { ...newContent.data, isPinned: false } // Ensure not pinned
+                };
+            }
+            // Fallback: No new topic found, keep the old one
+            return oldNode;
+        });
+
+        // Combined Nodes
+        const mergedNodes = [
+            currentNode.nodes.find(n => n.id === 'root')!, // Keep Root
+            ...pinnedNodes,
+            ...filledSlots
+        ];
+
+        // Regenerate Edges
+        const mergedEdges = mergedNodes
+            .filter(n => n.id !== 'root')
+            .map(n => ({
+                id: `e-${n.id}`,
+                source: 'root',
+                target: n.id,
+                type: 'straight',
+                animated: true,
+                style: { stroke: '#e2e8f0', strokeWidth: 2 }
+            }));
+
+        // 4. Update Tree In-Place (Modify currentNode only)
+        // We do NOT object.assign to historyRoot to break history?
+        // User said "delete from log".
+        // Effectively, the "Refresh" action mutates the current history step.
+        setCurrentNode({
+            ...currentNode,
+            nodes: mergedNodes,
+            edges: mergedEdges
+        });
+
+        // Update seen topics
+        const newTopicLabels = filledSlots
+            .filter(n => !currentNode.nodes.find(curr => curr.id === n.id && curr.data.label === n.data.label)) // Only add if it's actually new (not a fallback old node)
+            .map((n: Node) => n.data.label);
+        setSeenTopics(prev => [...prev, ...newTopicLabels]);
+    };
+
+    const handleBack = () => {
+        if (currentNode && currentNode.parent) {
+            setCurrentNode(currentNode.parent);
+        }
+    };
+
 
     // Handle Node Selection & Blueprint Fetch
     const handleNodeClick = async (node: Node) => {
         setSelectedNode(node);
 
-        if (node.type === 'leaf') {
+        if (node.type === 'leaf' || node.type === 'expanded-center') {
             setBlueprintLoading(true);
             setBlueprint(null);
             try {
@@ -109,6 +336,29 @@ function ResultPageContent() {
         router.push(`/report/1?topic=${topicTitle}`);
     };
 
+    const handleExpandTopic = async () => {
+        if (!selectedNode) return;
+        const newSubject = selectedNode.data.label;
+        const currentInterests = searchParams.get('interests') || ''; // Keep original interests
+        const category = selectedNode.data.category || '';
+
+        const params = {
+            subject: newSubject,
+            interests: currentInterests,
+            isExpanded: true,
+            centerCategory: category
+        };
+
+        setSelectedNode(null);
+
+        // Fetch new data and add to tree WITHOUT router.push
+        const data = await fetchTopicData(params, seenTopics);
+        if (data) addNewNodeToTree(data, params);
+
+        // Note: URL does not update, so browser back button won't work for these steps. 
+        // This is "Internal Navigation" as requested.
+    };
+
     return (
         <div className="h-[calc(100vh-64px)] bg-slate-50 flex flex-col overflow-hidden">
             {/* Main Content Area */}
@@ -123,7 +373,7 @@ function ResultPageContent() {
                                     variant="outline"
                                     size="icon"
                                     className="rounded-full w-8 h-8 border-slate-200 hover:bg-slate-100 hover:text-slate-900"
-                                    onClick={() => window.location.reload()}
+                                    onClick={handleRefresh}
                                 >
                                     <RefreshCw className="w-4 h-4 text-slate-500" />
                                 </Button>
@@ -145,14 +395,17 @@ function ResultPageContent() {
                     <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
                         {/* Mind Map Canvas */}
                         <div
-                            className={`w-full h-full transition-transform duration-300 ease-in-out ${selectedNode && selectedNode.type === 'leaf' ? '-translate-x-[200px]' : ''
+                            className={`w-full h-full transition-transform duration-300 ease-in-out ${selectedNode && (selectedNode.type === 'leaf' || selectedNode.type === 'expanded-center') ? '-translate-x-[200px]' : ''
                                 }`}
                         >
                             {/* Key forces remount if nodes change, simple way to handle initialNodes prop */}
                             <MindMap
-                                key={nodes.length}
-                                initialNodes={nodes}
-                                initialEdges={edges}
+                                key={currentNode?.id || 'init'}
+                                initialNodes={currentNode?.nodes.map(n => ({
+                                    ...n,
+                                    data: { ...n.data, onPinClick: handlePinClick }
+                                })) || []}
+                                initialEdges={currentNode?.edges || []}
                                 onNodeClick={handleNodeClick}
                                 onPaneClick={() => setSelectedNode(null)}
                             />
@@ -160,8 +413,22 @@ function ResultPageContent() {
                     </div>
                 )}
 
+                {/* Navigation Controls (Bottom Left) */}
+                <div className="absolute bottom-10 left-10 z-20 flex gap-4">
+                    <Button
+                        variant="secondary"
+                        size="icon"
+                        className="w-12 h-12 rounded-full shadow-lg bg-white hover:bg-slate-100 disabled:opacity-50"
+                        onClick={handleBack}
+                        disabled={!currentNode || !currentNode.parent}
+                    >
+                        <span className="sr-only">Go Back</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                    </Button>
+                </div>
+
                 {/* Right Drawer / Sidebar for Detail */}
-                {selectedNode && selectedNode.type === 'leaf' && (
+                {selectedNode && (selectedNode.type === 'leaf' || selectedNode.type === 'expanded-center') && (
                     <div className="absolute right-0 top-2 bottom-4 w-[400px] bg-white shadow-2xl border border-r-0 rounded-l-3xl p-6 animate-in slide-in-from-right duration-300 overflow-y-auto z-30">
                         <div className="flex justify-between items-start mb-6">
                             <div>
@@ -246,8 +513,12 @@ function ResultPageContent() {
                             >
                                 이 주제로 보고서 개요 작성하기
                             </Button>
-                            <Button variant="outline" className="w-full h-12">
-                                비슷한 주제 추천하기
+                            <Button
+                                variant="outline"
+                                className="w-full h-12 text-lg font-bold border-2 hover:bg-slate-50 transition-colors"
+                                onClick={handleExpandTopic}
+                            >
+                                🔗 비슷한 주제 추천하기
                             </Button>
                         </div>
                     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useEffect } from 'react';
 import ReactFlow, {
     Background,
     useNodesState,
@@ -10,7 +10,7 @@ import ReactFlow, {
     NodeTypes,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { CentralNode, LeafNode } from './CustomNode';
+import { CentralNode, LeafNode, ExpandedCenterNode } from './CustomNode';
 
 interface MindMapProps {
     initialNodes: Node[];
@@ -20,12 +20,18 @@ interface MindMapProps {
 }
 
 const MindMap: React.FC<MindMapProps> = ({ initialNodes, initialEdges, onNodeClick, onPaneClick }) => {
-    const [nodes, , onNodesChange] = useNodesState(initialNodes);
-    const [edges, , onEdgesChange] = useEdgesState(initialEdges);
+    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+    useEffect(() => {
+        setNodes(initialNodes);
+        setEdges(initialEdges);
+    }, [initialNodes, initialEdges, setNodes, setEdges]);
 
     const nodeTypes = useMemo<NodeTypes>(() => ({
         central: CentralNode,
-        leaf: LeafNode
+        leaf: LeafNode,
+        'expanded-center': ExpandedCenterNode
     }), []);
 
     const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
