@@ -27,6 +27,7 @@ function ResultPageContent() {
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
     const [loading, setLoading] = useState(true);
+    const [history, setHistory] = useState<string[]>([]);
 
     // Selection & Blueprint States
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -34,49 +35,67 @@ function ResultPageContent() {
     const [blueprintLoading, setBlueprintLoading] = useState(false);
 
     // Initial Fetch
+    const fetchTopics = async (currentHistory: string[] = []) => {
+        setLoading(true);
+        try {
+            const subject = searchParams.get('subject') || '';
+            const interests = searchParams.get('interests') || '';
+            const isExpanded = searchParams.get('expanded') === 'true';
+            const centerCategory = searchParams.get('category') || '';
+
+            const res = await fetch('/api/topics', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subject,
+                    interests,
+                    isExpanded,
+                    centerCategory,
+                    previousTopics: currentHistory
+                })
+            });
+
+            if (!res.ok) throw new Error("Failed to fetch topics");
+
+            const data = await res.json();
+
+            // Generate Edges based on nodes
+            const generatedEdges: Edge[] = data.nodes
+                .filter((n: Node) => n.id !== 'root')
+                .map((n: Node) => ({
+                    id: `e-${n.id}`,
+                    source: 'root',
+                    target: n.id,
+                    type: 'straight',
+                    animated: true,
+                    style: { stroke: '#e2e8f0', strokeWidth: 2 }
+                }));
+
+            setNodes(data.nodes);
+            setEdges(generatedEdges);
+
+            // Add new topics to history
+            const newTopicLabels = data.nodes
+                .filter((n: Node) => n.type === 'leaf')
+                .map((n: Node) => n.data.label);
+            setHistory(prev => [...prev, ...newTopicLabels]);
+
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Initial Fetch
     useEffect(() => {
-        const fetchTopics = async () => {
-            setLoading(true);
-            try {
-                const subject = searchParams.get('subject') || '';
-                const interests = searchParams.get('interests') || '';
-                const isExpanded = searchParams.get('expanded') === 'true';
-                const centerCategory = searchParams.get('category') || '';
-
-                const res = await fetch('/api/topics', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ subject, interests, isExpanded, centerCategory })
-                });
-
-                if (!res.ok) throw new Error("Failed to fetch topics");
-
-                const data = await res.json();
-
-                // Generate Edges based on nodes
-                const generatedEdges: Edge[] = data.nodes
-                    .filter((n: Node) => n.id !== 'root')
-                    .map((n: Node) => ({
-                        id: `e-${n.id}`,
-                        source: 'root',
-                        target: n.id,
-                        type: 'straight',
-                        animated: true,
-                        style: { stroke: '#e2e8f0', strokeWidth: 2 }
-                    }));
-
-                setNodes(data.nodes);
-                setEdges(generatedEdges);
-            } catch (error) {
-                console.error(error);
-                // Fallback or error state could be handled here
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchTopics();
+        setHistory([]); // Reset history on new navigation
+        fetchTopics([]);
     }, [searchParams]);
+
+    const handleRefresh = () => {
+        fetchTopics(history);
+    };
 
     // Handle Node Selection & Blueprint Fetch
     const handleNodeClick = async (node: Node) => {
@@ -134,7 +153,7 @@ function ResultPageContent() {
                                     variant="outline"
                                     size="icon"
                                     className="rounded-full w-8 h-8 border-slate-200 hover:bg-slate-100 hover:text-slate-900"
-                                    onClick={() => window.location.reload()}
+                                    onClick={handleRefresh}
                                 >
                                     <RefreshCw className="w-4 h-4 text-slate-500" />
                                 </Button>

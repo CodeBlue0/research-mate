@@ -30,7 +30,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export async function POST(request: Request) {
     try {
-        const { subject, interests, isExpanded, centerCategory } = await request.json();
+        const { subject, interests, isExpanded, centerCategory, previousTopics } = await request.json();
 
         // Check for API Key but don't fail immediately, try-catch will handle fallback
         const apiKey = process.env.DEEPSEEK_API_KEY;
@@ -49,8 +49,10 @@ export async function POST(request: Request) {
             The topics should be suitable for a high school student's rigorous inquiry project.
             IMPORTANT: Output all text (title, label, description, tags, etc.) in KOREAN (한국어).
 
+            ${previousTopics && previousTopics.length > 0 ? `IMPORTANT: EXCLUDE the following topics from your suggestions as they have already been seen: ${previousTopics.join(', ')}.` : ''}
+
             Return the result ONLY as a JSON object with a "topics" array.
-            Each topic should have:
+            Each topic should have: 
             - "title": Short, catchy title for the node (max 10 words).
             - "description": 1-2 sentence description.
             - "category": Choose from: "수학/생명", "수학/공학", "수학/경제", "수학/예술", "수학/사회", or "기타".
