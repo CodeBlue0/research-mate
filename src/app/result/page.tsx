@@ -32,6 +32,7 @@ interface HistoryNode {
     };
     parent: HistoryNode | null;
     children: HistoryNode[];
+    sourceNodeId?: string; // ID of the node in the parent that triggered this history
 }
 
 function ResultPageContent() {
@@ -39,10 +40,13 @@ function ResultPageContent() {
     const searchParams = useSearchParams();
 
     // Data States
-    // Navigation State
     const [historyRoot, setHistoryRoot] = useState<HistoryNode | null>(null);
     const [currentNode, setCurrentNode] = useState<HistoryNode | null>(null);
     const [loading, setLoading] = useState(true);
+
+    // Force re-render on refresh
+    const [refreshKey, setRefreshKey] = useState(0);
+
     // history array for API exclusion (flattened list of seen topics)
     const [seenTopics, setSeenTopics] = useState<string[]>([]);
 
@@ -54,7 +58,6 @@ function ResultPageContent() {
     // Optimistic Protection: Prevent double fetch in strict mode
     const isInitialized = useRef(false);
 
-    // Initial Fetch
     // Initial Fetch Helper
     const fetchTopicData = async (params: { subject: string, interests: string, isExpanded: boolean, centerCategory: string }, currentHistory: string[]) => {
         setLoading(true);
@@ -95,7 +98,7 @@ function ResultPageContent() {
     };
 
     // Support Function to add new node to tree
-    const addNewNodeToTree = (data: { nodes: Node[], edges: Edge[] }, params: any) => {
+    const addNewNodeToTree = (data: { nodes: Node[], edges: Edge[] }, params: any, sourceNodeId?: string) => {
         if (!currentNode) return;
 
         const newNode: HistoryNode = {
@@ -105,6 +108,7 @@ function ResultPageContent() {
             data: params,
             parent: currentNode,
             children: [],
+            sourceNodeId: sourceNodeId
         };
 
         currentNode.children.push(newNode);
@@ -174,97 +178,57 @@ function ResultPageContent() {
         const pinnedNodes = currentNode.nodes.filter(n => n.data.isPinned);
         const pinnedCount = pinnedNodes.length;
 
-        // If all 5 leaf nodes are pinned, nothing to refresh (Root is not pinnable usually)
-        // Root is id 'root'. Leaves are others.
-        // Assuming max 5 leaves.
+        // If all 5 leaf nodes are pinned, nothing to refresh
         if (pinnedCount >= 5) {
-            // Optional: Show toast
             return;
         }
 
         // 2. Fetch New Topics
-        // We need (5 - pinnedCount) new topics.
-        // The API returns 5. We'll take the first k.
+        const amountNeeded = 5 - pinnedCount;
         const params = currentNode.data;
         const data = await fetchTopicData(params, seenTopics);
 
-        if (!data || !data.nodes || data.nodes.length <= 1) { // <= 1 meaning only root or empty
-            // Ideally show a toast here
+        if (!data || !data.nodes || data.nodes.length <= 1) {
             console.warn("Refresh returned insufficient topics");
             return;
         }
 
-        // 3. Merge Nodes
-        // New nodes come with IDs like 'node-0', 'node-1'... from API mock/result.
-        // We need to ensure unique IDs if we merge.
-        // Pinned nodes keep their IDs.
-        // New nodes need new IDs to avoid collision if they reuse 'node-0'.
-        // Actually fetchTopicData/API likely returns 'node-0'...'node-4'.
-        // If I pin 'node-0', and fetch gets 'node-0', I have two 'node-0's?
-        // I should re-index the NEW nodes.
-
-        const amountNeeded = 5 - pinnedCount;
+        // 3. Prepare New Nodes (New IDs)
+        // We generate completely new IDs to ensure that any previous history (children) associated with the old IDs is severed.
         const newLeaves = data.nodes
-            .filter((n: Node) => n.id !== 'root')
+            .filter((n: Node) => n.id !== 'root' && n.type === 'leaf') // ERROR FIX: Exclude Phantom/Default nodes
             .slice(0, amountNeeded)
             .map((n: Node, index: number) => ({
                 ...n,
-                id: `node-${Date.now()}-${index}`, // Ensure unique ID
-                position: { x: 0, y: 0 } // Layout will handle this? Or I need to calculate?
-                // The MindMap component likely relies on `getLayoutedElements` or initial positions.
-                // If I pass new nodes with (0,0), `MindMap` (if it handles layout) handles it.
-                // Wait, `MindMap.tsx` does NOT auto-layout on prop change unless `dagre` logic is there.
-                // Looking at `fetchTopicData`:
-                // It returns nodes with positions set by API/Server?
-                // `api/topics/route.ts` calculates positions.
-                // Pinned nodes HAVE positions.
-                // New nodes have positions for slots 0..k.
-                // Using simple merge might overlap positions.
-                // Ideally: 
-                // Slot 1: Pinned Node A.
-                // Slot 2: New Node.
-                // ...
-                // I should probably Recalculate Layout.
-                // Or simply accept that API gives coordinates for 5 nodes.
-                // If I pin Node at (100, 100).
-                // API gives Node at (100, 100).
-                // Collision.
-                // Implementation Shortcut:
-                // Just take pinned nodes and new nodes.
-                // Let's ASSUME the simple merge is "good enough" for V1, or better:
-                // Use the POSITIONS from the API for the new nodes, but map them to the UNFILLED slots?
-                // This is complex.
-                //
-                // Simplest Approach for User Request:
-                // "Pinned nodes stay in place".
-                // Keep pinned nodes AS IS.
-                // Generate new nodes.
-                // Assign new nodes to the POSITIONS of the unpinned (removed) nodes.
-                // This preserves layout perfectly.
+                id: `node-${Date.now()}-${index}`, // NEW ID
+                // Position will be assigned from slots
             }));
 
-        const unpinnedOriginalNodes = currentNode.nodes.filter(n => n.id !== 'root' && !n.data.isPinned);
+        const unpinnedOriginalNodes = currentNode.nodes.filter(n => n.type === 'leaf' && !n.data.isPinned);
 
-        // Map available slots (unpinned nodes) to new content (if available) or keep old content
+        // Map unpinned slots to new content
         const filledSlots = unpinnedOriginalNodes.map((oldNode, i) => {
             const newContent = newLeaves[i];
             if (newContent) {
                 return {
                     ...newContent,
-                    id: oldNode.id, // Keep ID for stable transition
-                    position: oldNode.position, // Keep Position
-                    data: { ...newContent.data, isPinned: false } // Ensure not pinned
+                    id: newContent.id, // Use NEW ID
+                    position: oldNode.position, // Recyle Grid Position
+                    data: { ...newContent.data, isPinned: false }
                 };
             }
-            // Fallback: No new topic found, keep the old one
             return oldNode;
         });
 
+        // Identify other nodes to preserve (like Phantom nodes)
+        const otherNodes = currentNode.nodes.filter(n => n.id !== 'root' && n.type !== 'leaf' && !n.data?.isPinned);
+
         // Combined Nodes
         const mergedNodes = [
-            currentNode.nodes.find(n => n.id === 'root')!, // Keep Root
+            currentNode.nodes.find(n => n.id === 'root')!,
             ...pinnedNodes,
-            ...filledSlots
+            ...filledSlots,
+            ...otherNodes
         ];
 
         // Regenerate Edges
@@ -279,21 +243,30 @@ function ResultPageContent() {
                 style: { stroke: '#e2e8f0', strokeWidth: 2 }
             }));
 
-        // 4. Update Tree In-Place (Modify currentNode only)
-        // We do NOT object.assign to historyRoot to break history?
-        // User said "delete from log".
-        // Effectively, the "Refresh" action mutates the current history step.
+        // 4. Update History Children (Remove stacks of replaced nodes)
+        // Aggressive Strategy: Only keep children (history) that belong to Pinned Nodes.
+        // Everything else (unpinned) is being refreshed/replaced, so their history is wiped.
+        const pinnedNodeIds = new Set(pinnedNodes.map(n => n.id));
+        const updatedChildren = currentNode.children.filter(child =>
+            child.sourceNodeId && pinnedNodeIds.has(child.sourceNodeId)
+        );
+
+        // 5. Commit Updates
         setCurrentNode({
             ...currentNode,
             nodes: mergedNodes,
-            edges: mergedEdges
+            edges: mergedEdges,
+            children: updatedChildren
         });
 
         // Update seen topics
         const newTopicLabels = filledSlots
-            .filter(n => !currentNode.nodes.find(curr => curr.id === n.id && curr.data.label === n.data.label)) // Only add if it's actually new (not a fallback old node)
+            .filter(n => !currentNode.nodes.some(curr => curr.id === n.id))
             .map((n: Node) => n.data.label);
         setSeenTopics(prev => [...prev, ...newTopicLabels]);
+
+        // Force Remount
+        setRefreshKey(prev => prev + 1);
     };
 
     const handleBack = () => {
@@ -329,6 +302,18 @@ function ResultPageContent() {
         }
     };
 
+    const handleNodeDoubleClick = (node: Node) => {
+        handleStackClick(node.id); // Reuse the logic
+    };
+
+    const handleStackClick = (nodeId: string) => {
+        if (!currentNode) return;
+        const targetChild = currentNode.children.find(child => child.sourceNodeId === nodeId);
+        if (targetChild) {
+            setCurrentNode(targetChild);
+        }
+    };
+
     const handleGenerateReport = () => {
         if (!selectedNode) return;
         // Pass the topic title to the report page
@@ -349,11 +334,12 @@ function ResultPageContent() {
             centerCategory: category
         };
 
+        const sourceNodeId = selectedNode.id;
         setSelectedNode(null);
 
         // Fetch new data and add to tree WITHOUT router.push
         const data = await fetchTopicData(params, seenTopics);
-        if (data) addNewNodeToTree(data, params);
+        if (data) addNewNodeToTree(data, params, sourceNodeId);
 
         // Note: URL does not update, so browser back button won't work for these steps. 
         // This is "Internal Navigation" as requested.
@@ -398,15 +384,20 @@ function ResultPageContent() {
                             className={`w-full h-full transition-transform duration-300 ease-in-out ${selectedNode && (selectedNode.type === 'leaf' || selectedNode.type === 'expanded-center') ? '-translate-x-[200px]' : ''
                                 }`}
                         >
-                            {/* Key forces remount if nodes change, simple way to handle initialNodes prop */}
                             <MindMap
-                                key={currentNode?.id || 'init'}
+                                key={`${currentNode?.id || 'init'}-${refreshKey}`}
                                 initialNodes={currentNode?.nodes.map(n => ({
                                     ...n,
-                                    data: { ...n.data, onPinClick: handlePinClick }
+                                    data: {
+                                        ...n.data,
+                                        onPinClick: handlePinClick, // Correctly passed
+                                        onStackClick: handleStackClick, // Correctly passed
+                                        hasStack: currentNode.children?.some(child => child.sourceNodeId === n.id)
+                                    }
                                 })) || []}
                                 initialEdges={currentNode?.edges || []}
                                 onNodeClick={handleNodeClick}
+                                onNodeDoubleClick={handleNodeDoubleClick}
                                 onPaneClick={() => setSelectedNode(null)}
                             />
                         </div>

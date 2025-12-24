@@ -81,13 +81,23 @@ export async function POST(request: Request) {
         // Fallback Mock Data if API failed or skipped
         if (!topics || topics.length === 0) {
             console.log("Using Mock Data for Topics");
-            topics = [
-                { title: `고급 ${subject}`, description: `${subject || '일반'} 데이터의 패턴을 AI로 분석하는 연구입니다.`, category: "수학/공학" },
-                { title: "프랙탈 기하학", description: "생물학적 구조에서 나타나는 수학적 패턴을 탐구합니다.", category: "수학/생명" },
-                { title: "스마트 시티 교통", description: "그래프 이론을 활용하여 도심 교통 흐름을 최적화합니다.", category: "수학/공학" },
-                { title: "전염병 모델링", description: "전염병 확산을 수학적 모델링으로 예측하고 분석합니다.", category: "수학/생명" },
-                { title: "암호화폐 시장 분석", description: "가상화폐 시장의 등락폭을 통계적으로 분석합니다.", category: "수학/경제" },
+            const randomSuffix = () => Math.floor(Math.random() * 100);
+
+            // Simple pool of potential topics to mix and match
+            const pool = [
+                { title: `고급 ${subject} 분석 ${randomSuffix()}`, description: `${subject || '일반'} 데이터의 패턴을 AI로 분석하는 연구입니다.`, category: "수학/공학" },
+                { title: `프랙탈 기하학 ${randomSuffix()}`, description: "생물학적 구조에서 나타나는 수학적 패턴을 탐구합니다.", category: "수학/생명" },
+                { title: `스마트 시티 교통 ${randomSuffix()}`, description: "그래프 이론을 활용하여 도심 교통 흐름을 최적화합니다.", category: "수학/공학" },
+                { title: `전염병 모델링 ${randomSuffix()}`, description: "전염병 확산을 수학적 모델링으로 예측하고 분석합니다.", category: "수학/생명" },
+                { title: `암호화폐 시장 분석 ${randomSuffix()}`, description: "가상화폐 시장의 등락폭을 통계적으로 분석합니다.", category: "수학/경제" },
+                { title: `네트워크 이론 ${randomSuffix()}`, description: "복잡계 네트워크의 연결성을 분석합니다.", category: "수학/사회" },
+                { title: `음악과 수학 ${randomSuffix()}`, description: "화성학에 숨겨진 수학적 비율을 연구합니다.", category: "수학/예술" },
+                { title: `게임 이론 ${randomSuffix()}`, description: "경제적 의사결정 모델을 시뮬레이션합니다.", category: "수학/경제" }
             ];
+
+            // Shuffle and pick 5
+            const shuffled = pool.sort(() => 0.5 - Math.random());
+            topics = shuffled.slice(0, 5);
         }
 
         // Transform to Nodes
