@@ -47,6 +47,44 @@ function ResultPageContent() {
     // Force re-render on refresh
     const [refreshKey, setRefreshKey] = useState(0);
 
+    const [loadingProgress, setLoadingProgress] = useState(0); // 0 to 5
+    const [showLoadingScreen, setShowLoadingScreen] = useState(true);
+
+    // Simulate Loading Progress (Stall at 4/5 until real data arrives)
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        let timeout: NodeJS.Timeout;
+
+        if (loading) {
+            setShowLoadingScreen(true);
+            setLoadingProgress(0);
+            let checkCount = 0;
+            interval = setInterval(() => {
+                checkCount++;
+                setLoadingProgress(prev => {
+                    // Fast start (0->1->2)
+                    if (prev < 2) return prev + 1;
+                    // Slow down (2->3)
+                    if (prev === 2 && checkCount > 5) return 3;
+                    // Crawl (3->4)
+                    if (prev === 3 && checkCount > 15) return 4;
+                    // Stall at 4 until loading becomes false
+                    return prev;
+                });
+            }, 500);
+        } else {
+            setLoadingProgress(5); // Complete immediately when data arrives
+            // Delay showing the result so user sees the 100% state
+            timeout = setTimeout(() => {
+                setShowLoadingScreen(false);
+            }, 400);
+        }
+        return () => {
+            clearInterval(interval);
+            clearTimeout(timeout);
+        };
+    }, [loading]);
+
     // history array for API exclusion (flattened list of seen topics)
     const [seenTopics, setSeenTopics] = useState<string[]>([]);
 
@@ -350,7 +388,7 @@ function ResultPageContent() {
             {/* Main Content Area */}
             <div className="flex-1 relative">
                 {/* Floating Title Card */}
-                {!loading && (
+                {!showLoadingScreen && (
                     <div className="absolute top-4 left-8 z-10 fade-in slide-in-from-top-4 duration-500">
                         <Card className="bg-white/90 backdrop-blur-sm shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 p-7 max-w-sm rounded-[2rem]">
                             <div className="flex items-center gap-4 mb-3">
@@ -371,11 +409,39 @@ function ResultPageContent() {
                         </Card>
                     </div>
                 )}
-                {loading ? (
+                {showLoadingScreen ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-20">
-                        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-                        <h2 className="text-xl font-bold text-slate-800">주제 생성 중...</h2>
-                        <p className="text-slate-500">DeepSeek AI가 맞춤형 연구 주제를 고민하고 있습니다.</p>
+                        <div className="relative w-32 h-32 mb-6">
+                            {/* Background Circle */}
+                            <svg className="w-full h-full transform -rotate-90">
+                                <circle
+                                    cx="64"
+                                    cy="64"
+                                    r="56"
+                                    className="stroke-slate-200"
+                                    strokeWidth="8"
+                                    fill="none"
+                                />
+                                {/* Progress Circle */}
+                                <circle
+                                    cx="64"
+                                    cy="64"
+                                    r="56"
+                                    className="stroke-blue-600 transition-all duration-500 ease-out"
+                                    strokeWidth="8"
+                                    fill="none"
+                                    strokeDasharray={351.86} // 2 * PI * 56
+                                    strokeDashoffset={351.86 - (351.86 * (loadingProgress / 5))}
+                                    strokeLinecap="round"
+                                />
+                            </svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-700">
+                                <span className="text-3xl font-bold">{loadingProgress}</span>
+                                <span className="text-xs font-medium text-slate-400">/ 5</span>
+                            </div>
+                        </div>
+                        <h2 className="text-xl font-bold text-slate-800 mb-2">주제 생성 중...</h2>
+                        <p className="text-slate-500 text-sm animate-pulse">DeepSeek AI가 맞춤형 연구 주제를 찾고 있습니다.</p>
                     </div>
                 ) : (
                     <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
