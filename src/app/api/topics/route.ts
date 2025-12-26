@@ -43,9 +43,23 @@ export async function POST(request: Request) {
         let topics = [];
 
         if (shouldUseRealApi) {
+            const perspectives = [
+                "Focus on latest technological trends and future applications.",
+                "Focus on historical evolution and fundamental theories.",
+                "Focus on interdisciplinary connections with Art and Social Sciences.",
+                "Focus on practical problem-solving in daily life.",
+                "Focus on ethical and philosophical implications.",
+                "Focus on experimental and data-driven approaches."
+            ];
+            const randomPerspective = perspectives[Math.floor(Math.random() * perspectives.length)];
+
             const prompt = `
             You are an expert high school research consultant.
             Suggest 5 specific, high-quality research topics related to the subject "${subject}" and interests "${interests}".
+            
+            PERSPECTIVE: ${randomPerspective}
+            (Ensure the topics reflect this specific perspective to provide a unique angle.)
+
             The topics should be suitable for a high school student's rigorous inquiry project.
             IMPORTANT: Output all text (title, label, description, tags, etc.) in KOREAN (한국어).
 
@@ -69,12 +83,16 @@ export async function POST(request: Request) {
                 messages: [{ role: "system", content: "You are a helpful assistant that outputs JSON." }, { role: "user", content: prompt }],
                 model: "deepseek-chat",
                 response_format: { type: "json_object" },
+                temperature: 1.0, // Increase creativity
             });
 
             const content = completion.choices[0].message.content;
+            console.log("DeepSeek Raw Content:", content); // DEBUG LOG
+
             if (content) {
                 const result = JSON.parse(content);
                 topics = result.topics;
+                console.log("DeepSeek Parsed Topics:", topics); // DEBUG LOG
             }
         }
 
