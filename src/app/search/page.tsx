@@ -35,6 +35,45 @@ function SearchPageContent() {
     // Curriculum State
     const [curriculum, setCurriculum] = useState<{ id: number, unit_large: string, unit_medium: string, unit_small: string }[]>([]);
 
+    // Ref to hold restored values until curriculum is loaded
+    const pendingRestoration = useRef<{ large?: string, medium?: string, small?: string } | null>(null);
+
+    // Persistence Logic
+    useEffect(() => {
+        const savedSearch = localStorage.getItem('search_form_storage');
+        if (savedSearch) {
+            try {
+                const parsed = JSON.parse(savedSearch);
+                if (parsed.selectedSubject) {
+                    setSelectedSubject(parsed.selectedSubject);
+                    // Store other values to be restored after curriculum loads
+                    pendingRestoration.current = {
+                        large: parsed.largeUnit,
+                        medium: parsed.mediumUnit,
+                        small: parsed.smallUnit
+                    };
+                }
+
+                if (parsed.major) setMajor(parsed.major);
+                if (parsed.difficulty) setDifficulty(parsed.difficulty);
+            } catch (e) {
+                console.error("Failed to restore search form", e);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        const dataToSave = {
+            selectedSubject,
+            largeUnit,
+            mediumUnit,
+            smallUnit,
+            major,
+            difficulty
+        };
+        localStorage.setItem('search_form_storage', JSON.stringify(dataToSave));
+    }, [selectedSubject, largeUnit, mediumUnit, smallUnit, major, difficulty]);
+
     // Error State
     const [errors, setErrors] = useState({
         subject: false,
@@ -123,10 +162,25 @@ function SearchPageContent() {
                 if (error) throw error;
                 if (data) {
                     setCurriculum(data);
-                    // Reset selections
-                    setLargeUnit('');
-                    setMediumUnit('');
-                    setSmallUnit('');
+
+                    // Check if we have pending restoration values
+                    if (pendingRestoration.current) {
+                        const { large, medium, small } = pendingRestoration.current;
+                        if (large) setLargeUnit(large);
+                        // These might technically need to wait for their parent units to be "selected" effectively 
+                        // but since we derive options from the full `curriculum` array + current state, 
+                        // setting state directly works as long as the options exist in the data.
+                        if (medium) setMediumUnit(medium);
+                        if (small) setSmallUnit(small);
+
+                        // Clear pending
+                        pendingRestoration.current = null;
+                    } else {
+                        // Reset selections only if we are NOT restoring
+                        setLargeUnit('');
+                        setMediumUnit('');
+                        setSmallUnit('');
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching curriculum:', error);
