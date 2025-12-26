@@ -24,10 +24,10 @@ export async function POST(request: Request) {
             - "coreConcepts": Array of 2 objects, each with "name" (concept name) and "description".
             - "curriculum": Array of 2 objects, each with "name" (Subject name, e.g. "Physics I") and "description" (how it connects).
             - "inquiryGuide": Array of 4 strings, representing the specific activity for each step for THIS topic:
-                1. Hypothesis Setting
-                2. Experimental Design
-                3. Data Analysis
-                4. Report Writing
+                1. Background Theory (Curriculum & Advanced Concepts)
+                2. Curriculum Connection (Principles application)
+                3. Practical Activity (User-led experiment/activity)
+                4. Report Writing (Synthesis)
             - "references": Array of 2 reference titles.
     
             JSON Format:
@@ -69,10 +69,10 @@ export async function POST(request: Request) {
                     { name: "관련 교과 II", description: "실생활 문제 해결 단원과 연계됩니다." }
                 ],
                 inquiryGuide: [
-                    "주제와 관련된 변인을 파악하고 가설을 세웁니다.",
-                    "변인을 통제하여 실험을 설계하고 진행합니다.",
-                    "수집된 데이터를 표와 그래프로 정리하고 분석합니다.",
-                    "결론을 도출하고 탐구 보고서를 작성합니다."
+                    "주제와 관련된 교과 개념 및 심화 이론을 조사합니다.",
+                    "탐구 내용이 교과 과정의 어떤 원리와 연결되는지 분석합니다.",
+                    "설계한 실험이나 조사를 직접 수행하고 데이터를 수집합니다.",
+                    "분석된 결과를 바탕으로 최종 탐구 보고서를 작성합니다."
                 ],
                 references: ["관련 논문 A (2024)", "전공 서적 B"]
             };

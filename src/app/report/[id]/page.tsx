@@ -175,9 +175,9 @@ function ReportPageContent() {
                             </div>
                             <div className="space-y-4">
                                 {[
-                                    { step: 1, title: '가설 설정' },
-                                    { step: 2, title: '실험 설계' },
-                                    { step: 3, title: '데이터 분석' },
+                                    { step: 1, title: '배경 이론' },
+                                    { step: 2, title: '교과 연계' },
+                                    { step: 3, title: '탐구 실습' },
                                     { step: 4, title: '보고서 작성' },
                                 ].map((guide, idx) => (
                                     <Link key={guide.step} href={`/report/${id}/inquiry-guide/step-${guide.step}?topic=${encodeURIComponent(topicParam || '')}`} className="block group">
