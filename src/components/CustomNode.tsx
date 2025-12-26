@@ -7,11 +7,12 @@ import { cn } from '@/lib/utils';
 
 // Icon mapping (simplified for demo, can be expanded)
 const iconMap: Record<string, LucideIcon> = {
-    "수학/생명": Activity,
-    "수학/공학": Calculator,
-    "수학/경제": TrendingUp,
-    "수학/사회": Network,
-    "수학/예술": Music,
+    "생명": Activity,
+    "공학": Calculator,
+    "경제": TrendingUp,
+    "사회": Network,
+    "예술": Music,
+    "생활": FileText,
     "default": FileText
 };
 
