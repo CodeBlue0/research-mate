@@ -143,8 +143,10 @@ function SearchPageContent() {
         // Navigate to result page with query params
         // Use the most specific selected unit as the topic
         // Filter out '_none_' and empty strings
-        const topicCandidates = [smallUnit, mediumUnit, largeUnit].filter(t => t && t !== '_none_');
-        const finalTopic = topicCandidates[0]; // Most specific one first (Small -> Medium -> Large)
+        // Create a hierarchical string: "Large > Medium > Small"
+        const finalTopic = [largeUnit, mediumUnit, smallUnit]
+            .filter(t => t && t !== '_none_')
+            .join(' > ');
 
         const newErrors = {
             subject: !selectedSubject,

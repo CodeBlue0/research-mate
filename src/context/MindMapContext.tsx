@@ -11,7 +11,10 @@ export interface HistoryNode {
     edges: Edge[];
     data: {
         subject: string;
+        topic?: string;
         interests: string;
+        difficulty?: string;
+        focusTopic?: string;
         isExpanded: boolean;
         centerCategory: string;
     };

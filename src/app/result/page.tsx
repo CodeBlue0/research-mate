@@ -93,7 +93,7 @@ function ResultPageContent() {
     const isInitialized = useRef(false);
 
     // Initial Fetch Helper
-    const fetchTopicData = async (params: { subject: string, interests: string, isExpanded: boolean, centerCategory: string }, currentHistory: string[]) => {
+    const fetchTopicData = async (params: { subject: string, topic?: string, interests: string, difficulty?: string, focusTopic?: string, isExpanded: boolean, centerCategory: string }, currentHistory: string[]) => {
         setLoading(true);
         try {
             const res = await fetch('/api/topics', {
@@ -158,11 +158,14 @@ function ResultPageContent() {
     // Initial Fetch
     useEffect(() => {
         const init = async () => {
-            const subject = searchParams.get('subject') || '';
-            const interests = searchParams.get('interests') || '';
+            const subject = searchParams.get('selectedSubject') || searchParams.get('subject') || '';
+            const topic = searchParams.get('topic') || '';
+            const interests = searchParams.get('major') || searchParams.get('interests') || '';
+            const difficulty = searchParams.get('difficulty') || '50';
             const isExpanded = searchParams.get('expanded') === 'true';
             const centerCategory = searchParams.get('category') || '';
-            const params = { subject, interests, isExpanded, centerCategory };
+
+            const params = { subject, topic, interests, difficulty, isExpanded, centerCategory };
 
             // PERSISTENCE CHECK:
             // If we have historyRoot and the subject matches, assume we are returning from navigation
@@ -356,9 +359,7 @@ function ResultPageContent() {
         }
     };
 
-    const handleNodeDoubleClick = (node: Node) => {
-        handleStackClick(node.id); // Reuse the logic
-    };
+
 
     const handleStackClick = (nodeId: string) => {
         if (!currentNode) return;
@@ -377,13 +378,20 @@ function ResultPageContent() {
 
     const handleExpandTopic = async () => {
         if (!selectedNode) return;
-        const newSubject = selectedNode.data.label;
-        const currentInterests = searchParams.get('interests') || ''; // Keep original interests
+        // Retain original context
+        const subject = searchParams.get('subject') || '';
+        const topic = searchParams.get('topic') || '';
+        const interests = searchParams.get('interests') || '';
+        const difficulty = searchParams.get('difficulty') || '50';
         const category = selectedNode.data.category || '';
+        const focusTopic = selectedNode.data.label;
 
         const params = {
-            subject: newSubject,
-            interests: currentInterests,
+            subject,
+            topic,
+            interests,
+            difficulty,
+            focusTopic, // New parameter for expansion focus
             isExpanded: true,
             centerCategory: category
         };
@@ -479,7 +487,7 @@ function ResultPageContent() {
                                 })) || []}
                                 initialEdges={currentNode?.edges || []}
                                 onNodeClick={handleNodeClick}
-                                onNodeDoubleClick={handleNodeDoubleClick}
+
                                 onPaneClick={() => setSelectedNode(null)}
                             />
                         </div>
