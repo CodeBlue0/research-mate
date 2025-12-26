@@ -10,9 +10,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowRight, Sparkles, Zap, GraduationCap, Microscope, ChevronDown, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useMindMap } from '@/context/MindMapContext';
 
 function SearchPageContent() {
     const router = useRouter();
+    const { setHistoryRoot, setCurrentNode, setSeenTopics } = useMindMap();
     const searchParams = useSearchParams();
     const subjectParam = searchParams.get('subject');
 
@@ -154,6 +156,11 @@ function SearchPageContent() {
             setErrors(newErrors);
             return;
         }
+
+        // UNCONDITIONAL CLEAR: Start New Session
+        setHistoryRoot(null);
+        setCurrentNode(null);
+        setSeenTopics([]);
 
         const query = new URLSearchParams({
             subject: 'math', // Force math as per requirement

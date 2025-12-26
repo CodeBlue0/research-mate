@@ -1,14 +1,23 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { Star, FileText, Users, ThumbsUp, ArrowRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useMindMap } from '@/context/MindMapContext';
 
 export default function LandingPage() {
   const router = useRouter();
+  const { setHistoryRoot, setCurrentNode, setSeenTopics } = useMindMap();
+
+  // Reset Mind Map State when visiting Landing Page (New Session)
+  useEffect(() => {
+    setHistoryRoot(null);
+    setCurrentNode(null);
+    setSeenTopics([]);
+  }, [setHistoryRoot, setCurrentNode, setSeenTopics]);
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
