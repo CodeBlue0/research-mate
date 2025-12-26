@@ -19,6 +19,8 @@ export const metadata: Metadata = {
 
 import { Header } from '@/components/Header';
 
+import { MindMapProvider } from '@/context/MindMapContext';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,10 +31,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50`}
       >
-        <Header />
-        <main className="min-h-screen pt-16">
-          {children}
-        </main>
+        <MindMapProvider>
+          <Header />
+          <main className="min-h-screen pt-16">
+            {children}
+          </main>
+        </MindMapProvider>
       </body>
     </html>
   );

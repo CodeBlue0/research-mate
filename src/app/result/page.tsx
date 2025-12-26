@@ -19,32 +19,22 @@ interface ReportData {
     references: string[];
 }
 
-// Tree-based History Node
-interface HistoryNode {
-    id: string; // unique ID
-    nodes: Node[];
-    edges: Edge[];
-    data: {
-        subject: string;
-        topic?: string;
-        interests: string;
-        difficulty?: string;
-        focusTopic?: string;
-        isExpanded: boolean;
-        centerCategory: string;
-    };
-    parent: HistoryNode | null;
-    children: HistoryNode[];
-    sourceNodeId?: string; // ID of the node in the parent that triggered this history
-}
+import { useMindMap, HistoryNode } from '@/context/MindMapContext';
+
+// Removing local interface definition as it is imported now
 
 function ResultPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    // Data States
-    const [historyRoot, setHistoryRoot] = useState<HistoryNode | null>(null);
-    const [currentNode, setCurrentNode] = useState<HistoryNode | null>(null);
+    // Global State from Context
+    const {
+        historyRoot, setHistoryRoot,
+        currentNode, setCurrentNode,
+        seenTopics, setSeenTopics
+    } = useMindMap();
+
+    // Local UI States
     const [loading, setLoading] = useState(true);
 
     // Force re-render on refresh
@@ -55,6 +45,12 @@ function ResultPageContent() {
 
     // Simulate Loading Progress (Stall at 4/5 until real data arrives)
     useEffect(() => {
+        // If we restored from context and are not loading, don't show loading screen
+        if (!loading && currentNode) {
+            setShowLoadingScreen(false);
+            return;
+        }
+
         let interval: NodeJS.Timeout;
         let timeout: NodeJS.Timeout;
 
@@ -88,9 +84,6 @@ function ResultPageContent() {
         };
     }, [loading]);
 
-    // history array for API exclusion (flattened list of seen topics)
-    const [seenTopics, setSeenTopics] = useState<string[]>([]);
-
     // Selection & Blueprint States
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [blueprint, setBlueprint] = useState<ReportData | null>(null);
@@ -118,7 +111,7 @@ function ResultPageContent() {
 
             // Generate Edges based on nodes
             const generatedEdges: Edge[] = data.nodes
-                .filter((n: Node) => n.id !== 'root')
+                .filter((n: Node) => n.id !== 'root' && n.id !== 'phantom-bottom')
                 .map((n: Node) => ({
                     id: `e-${n.id}`,
                     source: 'root',
@@ -174,30 +167,50 @@ function ResultPageContent() {
 
             const params = { subject, topic, interests, difficulty, isExpanded, centerCategory };
 
-            setSeenTopics([]); // Reset
-            const data = await fetchTopicData(params, []);
+            // PERSISTENCE CHECK:
+            // If we have historyRoot and the subject matches, assume we are returning from navigation
+            if (historyRoot && historyRoot.data.subject === subject) {
+                console.log("Restoring MindMap from Context");
+                setLoading(false); // Valid data exists, stop loading
+                // User sees 'showLoadingScreen' effect logic handle this
+                return;
+            }
 
-            if (data) {
-                const root: HistoryNode = {
-                    id: 'root-history',
-                    nodes: data.nodes,
-                    edges: data.edges,
-                    data: params,
-                    parent: null,
-                    children: [],
-                };
-                setHistoryRoot(root);
-                setCurrentNode(root);
+            // New Session or Different Subject
+            if (!isInitialized.current) {
+                isInitialized.current = true;
+                console.log("Starting New MindMap Session");
+                setSeenTopics([]); // Reset
+                const data = await fetchTopicData(params, []);
 
-                const newTopicLabels = data.nodes.filter((n: Node) => n.type === 'leaf').map((n: Node) => n.data.label);
-                setSeenTopics(newTopicLabels);
+                if (data) {
+                    const root: HistoryNode = {
+                        id: 'root-history',
+                        nodes: data.nodes,
+                        edges: data.edges,
+                        data: params,
+                        parent: null,
+                        children: [],
+                    };
+                    setHistoryRoot(root);
+                    setCurrentNode(root);
+
+                    const newTopicLabels = data.nodes.filter((n: Node) => n.type === 'leaf').map((n: Node) => n.data.label);
+                    setSeenTopics(newTopicLabels);
+                }
             }
         };
-        if (!isInitialized.current) {
-            isInitialized.current = true;
-            init();
-        }
-    }, [searchParams]);
+
+        // Ensure we only init once per mount, but also check if searchParams actually changed significantly
+        // Ideally we rely on isInitialized ref or searchParams change trigger
+        // Current logic uses isInitialized ref which is per-mount.
+        // Navigation Back usually remounts component.
+
+        // Reset initialization ref if subject changes (optional optimization)
+
+        init();
+
+    }, [searchParams, historyRoot, setHistoryRoot, setCurrentNode, setSeenTopics, setLoading]); // Re-run if params change or context setters change
 
     const handlePinClick = (nodeId: string) => {
         if (!currentNode) return;
@@ -277,7 +290,7 @@ function ResultPageContent() {
 
         // Regenerate Edges
         const mergedEdges = mergedNodes
-            .filter(n => n.id !== 'root')
+            .filter(n => n.id !== 'root' && n.id !== 'phantom-bottom')
             .map(n => ({
                 id: `e-${n.id}`,
                 source: 'root',
