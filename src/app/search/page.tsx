@@ -49,7 +49,7 @@ function SearchPageContent() {
     }, [curriculum]);
 
     const uniqueMediumUnits = React.useMemo(() => {
-        if (!largeUnit) return [];
+        if (!largeUnit || largeUnit === '_none_') return [];
         const units = new Set(
             curriculum
                 .filter(c => c.unit_large === largeUnit)
@@ -150,8 +150,8 @@ function SearchPageContent() {
 
         const newErrors = {
             subject: !selectedSubject,
-            unit: !finalTopic,
-            major: major.trim().length === 0
+            unit: false, // Optional now
+            major: false // Optional now
         };
 
         if (newErrors.subject || newErrors.unit || newErrors.major) {
@@ -294,6 +294,7 @@ function SearchPageContent() {
                                             <SelectValue placeholder="대단원 선택" />
                                         </SelectTrigger>
                                         <SelectContent>
+                                            <SelectItem value="_none_">선택 안 함</SelectItem>
                                             {uniqueLargeUnits.map((unit) => (
                                                 <SelectItem key={unit} value={unit}>{unit}</SelectItem>
                                             ))}
@@ -310,7 +311,7 @@ function SearchPageContent() {
                                             setMediumUnit(val);
                                             setSmallUnit('');
                                         }}
-                                        disabled={!largeUnit}
+                                        disabled={!largeUnit || largeUnit === '_none_'}
                                     >
                                         <SelectTrigger className="h-12 bg-gray-50/50">
                                             <SelectValue placeholder="중단원 선택" />
@@ -350,15 +351,14 @@ function SearchPageContent() {
 
                         {/* Major / Career */}
                         <div className="space-y-4">
-                            <Label className="font-bold text-lg">희망 진로, 관심 분야</Label>
+                            <Label className="font-bold text-lg">희망 진로, 관심 분야 (선택)</Label>
                             <Input
-                                className={`h-14 text-lg focus:border-blue-500 transition-colors ${errors.major ? 'border-red-500 bg-red-50 placeholder:text-red-400' : 'bg-gray-50/50'
-                                    }`}
-                                placeholder="예: 컴퓨터공학, 의학, 게임 이론, 인공지능"
+                                className={`h-14 text-lg border-slate-200 focus:border-blue-500 transition-colors bg-gray-50/50`}
+                                placeholder="예: 인공지능 연구원, 게임 개발자, 건축가 (비워두셔도 됩니다)"
                                 value={major}
                                 onChange={(e) => {
                                     setMajor(e.target.value);
-                                    if (errors.major) setErrors(prev => ({ ...prev, major: false }));
+                                    // No error tracking needed for optional field
                                 }}
                             />
                         </div>
