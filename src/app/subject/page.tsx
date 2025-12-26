@@ -1,10 +1,11 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Search, Book, Calculator, Globe, FlaskConical, Gavel, Palette, Scale, Laptop, MoreHorizontal } from 'lucide-react';
+import { useMindMap } from '@/context/MindMapContext';
 
 const subjects = [
     { id: 'korean', label: '국어', icon: Book, color: 'text-blue-500', bg: 'bg-blue-100' },
@@ -21,7 +22,15 @@ const subjects = [
 
 export default function SubjectPage() {
     const router = useRouter();
+    const { setHistoryRoot, setCurrentNode, setSeenTopics } = useMindMap();
     const [selected, setSelected] = React.useState<string | null>(null);
+
+    // Reset Mind Map State when visiting Subject Selection (New Session)
+    useEffect(() => {
+        setHistoryRoot(null);
+        setCurrentNode(null);
+        setSeenTopics([]);
+    }, [setHistoryRoot, setCurrentNode, setSeenTopics]);
 
     const handleSelect = (id: string) => {
         router.push(`/search?subject=${id}`);
