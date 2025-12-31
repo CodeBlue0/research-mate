@@ -152,7 +152,7 @@ export default function Step2Page() {
                                     <Zap className="w-4 h-4 text-green-500" />
                                     <h4 className="font-bold text-sm text-green-600 dark:text-green-400 uppercase tracking-wider">작동 메커니즘 (Application Mechanism)</h4>
                                 </div>
-                                <p className="text-gray-800 dark:text-gray-200 leading-relaxed text-sm">
+                                <p className="text-gray-800 dark:text-gray-200 leading-relaxed text-sm whitespace-pre-wrap">
                                     {guideData?.applicationMechanism || (loading ? "분석 중..." : "적용 원리를 생성하고 있습니다.")}
                                 </p>
                             </div>

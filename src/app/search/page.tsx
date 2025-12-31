@@ -354,7 +354,7 @@ function SearchPageContent() {
                             <Label className="font-bold text-lg">희망 진로, 관심 분야 (선택)</Label>
                             <Input
                                 className={`h-14 text-lg border-slate-200 focus:border-blue-500 transition-colors bg-gray-50/50`}
-                                placeholder="예: 인공지능 연구원, 게임 개발자, 건축가 (비워두셔도 됩니다)"
+                                placeholder="예: 인공지능 연구원, 데이터 사이언스, 반도체 공학 등"
                                 value={major}
                                 onChange={(e) => {
                                     setMajor(e.target.value);

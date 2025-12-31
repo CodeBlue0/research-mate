@@ -7,6 +7,9 @@ import { Star, FileText, Users, ThumbsUp, ArrowRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useMindMap } from '@/context/MindMapContext';
+import { TopicGeneratorDemo } from '@/components/landing/TopicGeneratorDemo';
+import { TestimonialCarousel } from '@/components/landing/TestimonialCarousel';
+import { ReportPreviewDemo } from '@/components/landing/ReportPreviewDemo';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -55,18 +58,8 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="flex justify-center">
-              {/* Illustration Placeholder */}
-              <div className="relative w-full max-w-[500px] aspect-[4/3] bg-slate-100 rounded-3xl overflow-hidden shadow-2xl flex items-center justify-center">
-                <div className="absolute inset-0 bg-gradient-to-tr from-blue-100/50 to-purple-100/50" />
-                <img
-                  src="/placeholder-hero.png"
-                  alt="Students studying together"
-                  className="object-cover w-full h-full opacity-80 hover:scale-105 transition-transform duration-700"
-                  onError={(e) => {
-                    e.currentTarget.src = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1000&auto=format&fit=crop";
-                  }}
-                />
-              </div>
+              {/* Illustration / Demo */}
+              <TopicGeneratorDemo />
             </div>
           </div>
         </div>
@@ -117,9 +110,9 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { title: '1. 관심 분야 입력', desc: '희망하는 과목, 진로 분야, 그리고 평소 관심있는 키워드를 간단히 입력하세요.', icon: '📝' },
-              { title: '2. 교과 과정 분석', desc: '최신 교육과정 성취 기준과 입력하신 데이터를 분석하여 연계성을 파악합니다.', icon: '📊' },
-              { title: '3. 맞춤 주제 도출', desc: '남들과 다른 차별화된 심화 탐구 주제 리스트와 탐구 가이드를 제공합니다.', icon: '💡' },
+              { title: '1. 교과 및 관심사 분석', desc: '희망 진로와 관심 키워드를 교과 성취 기준과 결합하여, 나의 탐구 방향성을 정밀하게 분석합니다.', icon: '📊' },
+              { title: '2. 심화 탐구 주제 추천', desc: '남들과 다른 차별화된 심화 탐구 주제를 도출하고, 생기부 경쟁력을 극대화할 수 있는 솔루션을 제안합니다.', icon: '💡' },
+              { title: '3. 보고서 가이드 제공', desc: '단순 주제 추천을 넘어, 배경 이론부터 보고서 초안 생성까지 완성도 높은 탐구 보고서 작성을 돕습니다.', icon: '📝' },
             ].map((step, idx) => (
               <Card key={idx} className="border-0 shadow-lg hover:shadow-xl transition-shadow">
                 <CardContent className="p-8">
@@ -135,41 +128,38 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20 bg-slate-50">
+      {/* Report Preview Section - NEW */}
+      <section className="py-24 bg-slate-50 overflow-hidden">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <div className="inline-block px-4 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm font-bold mb-6">
+              실제 결과물 예시
+            </div>
+            <h2 className="text-3xl font-bold mb-4 text-slate-900">
+              대학 수준의 <span className="text-blue-600">고퀄리티 탐구 보고서</span>
+            </h2>
+            <p className="text-lg text-slate-600">
+              주제 선정 동기부터 심화 이론, 실험 데이터 분석, 결론 도출까지.<br />
+              TopicGen AI가 논리적이고 체계적인 보고서 초안을 완성해 드립니다.
+            </p>
+          </div>
+
+          <div className="flex justify-center">
+            <ReportPreviewDemo />
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-24 bg-white">
         <div className="container mx-auto px-4 md:px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold tracking-tight mb-4">학생들의 실제 후기</h2>
             <p className="text-gray-500">TopicGen과 함께 성공적인 입시 결과를 만들어가는 학생들의 이야기입니다.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { name: '김민수 (고2)', text: '"막막했던 생기부 주제, 여기서 찾고 세특 꽉 채웠어요! 추천해주신 주제가 선생님께서도 참신하다고 칭찬해주셨습니다."', stars: 5 },
-              { name: '이서연 (고1)', text: '"관심사는 있는데 어떤 주제로 보고서를 써야할지 몰랐는데, 구체적인 방향을 잡아줘서 정말 좋았어요."', stars: 5 },
-              { name: '박준호 (중3)', text: '"수행평가 주제 정하기 너무 힘들었는데 덕분에 시간 아꼈습니다. 친구들에게도 추천하고 있어요. 강추합니다!"', stars: 4 },
-            ].map((review, idx) => (
-              <Card key={idx} className="border-none shadow-sm">
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex items-center space-x-4">
-                    <Avatar>
-                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${idx}`} />
-                      <AvatarFallback>{review.name[0]}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-bold text-sm">{review.name}</p>
-                      <p className="text-xs text-gray-500">2일 전</p>
-                    </div>
-                  </div>
-                  <div className="flex text-yellow-400">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className={`w-4 h-4 ${i < review.stars ? 'fill-current' : 'text-gray-300'}`} />
-                    ))}
-                  </div>
-                  <p className="text-gray-600 text-sm leading-relaxed">{review.text}</p>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="w-full">
+            <TestimonialCarousel />
           </div>
         </div>
       </section>

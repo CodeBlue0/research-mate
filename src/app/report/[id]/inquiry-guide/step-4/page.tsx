@@ -20,7 +20,11 @@ import { useParams, useSearchParams } from 'next/navigation';
 interface GuideData {
     title: string;
     description: string;
-    goal: string;
+    draft?: {
+        introduction: string;
+        body: string;
+        conclusion: string;
+    };
     checklist: string[];
     tips: string[];
 }
@@ -35,19 +39,32 @@ export default function Step4Page() {
     const [guideData, setGuideData] = useState<GuideData | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Editable draft states
+    const [intro, setIntro] = useState("");
+    const [body, setBody] = useState("");
+    const [conclusion, setConclusion] = useState("");
+
     useEffect(() => {
-        const fetchGuide = async () => {
+        const fetchDraft = async () => {
             if (!topicParam) {
                 setLoading(false);
                 return;
             }
 
-            // [Persistence Logic]
             const storageKey = `inquiry_step_4_${id}_${topicParam}`;
             const cached = localStorage.getItem(storageKey);
+
+            // If cached, load it
             if (cached) {
                 try {
-                    setGuideData(JSON.parse(cached));
+                    const parsed = JSON.parse(cached);
+                    setGuideData(parsed);
+                    // Initialize editors with cached draft or empty
+                    if (parsed.draft) {
+                        setIntro(parsed.draft.introduction);
+                        setBody(parsed.draft.body);
+                        setConclusion(parsed.draft.conclusion);
+                    }
                     setLoading(false);
                     return;
                 } catch (e) {
@@ -55,12 +72,28 @@ export default function Step4Page() {
                 }
             }
 
+            // Not cached, fetch from API with context
             setLoading(true);
             try {
+                // Gather Context from LocalStorage
+                const step1Data = JSON.parse(localStorage.getItem(`inquiry_step_1_${id}_${topicParam}`) || "{}");
+                const step2Data = JSON.parse(localStorage.getItem(`inquiry_step_2_${id}_${topicParam}`) || "{}");
+                const step3Data = JSON.parse(localStorage.getItem(`inquiry_step_3_${id}_${topicParam}`) || "{}");
+
+                const context = {
+                    step1: step1Data,
+                    step2: step2Data,
+                    step3: step3Data
+                };
+
                 const res = await fetch('/api/guide/step', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ topic: topicParam, step: 4 })
+                    body: JSON.stringify({
+                        topic: topicParam,
+                        step: 4,
+                        context: context // Send context to backend
+                    })
                 });
 
                 if (!res.ok) throw new Error("Failed to fetch guide");
@@ -68,7 +101,13 @@ export default function Step4Page() {
                 const data = await res.json();
                 setGuideData(data);
 
-                // [Persistence Logic]
+                if (data.draft) {
+                    setIntro(data.draft.introduction);
+                    setBody(data.draft.body);
+                    setConclusion(data.draft.conclusion);
+                }
+
+                // Save to LocalStorage
                 localStorage.setItem(storageKey, JSON.stringify(data));
             } catch (error) {
                 console.error(error);
@@ -77,8 +116,25 @@ export default function Step4Page() {
             }
         };
 
-        fetchGuide();
+        fetchDraft();
     }, [topicParam, id]);
+
+    // Update LocalStorage when user edits (Auto-save effect logic could be here, but for now just simple state)
+    const handleSave = () => {
+        if (!guideData) return;
+        const updatedData = {
+            ...guideData,
+            draft: {
+                introduction: intro,
+                body: body,
+                conclusion: conclusion
+            }
+        };
+        localStorage.setItem(`inquiry_step_4_${id}_${topicParam}`, JSON.stringify(updatedData));
+        // Also save to a "Final Report" key for the next page to read Easily? 
+        // Or the next page can just read this key. Let's make the next page read this key.
+        alert("저장되었습니다.");
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100 transition-colors duration-200">
@@ -110,8 +166,7 @@ export default function Step4Page() {
                                     {guideData?.title || '나만의 탐구 보고서 완성하기'}
                                 </h1>
                                 <p className="text-gray-500 dark:text-gray-400 leading-relaxed">
-                                    {guideData?.description || "지금까지 수행한 모든 과정을 논리정연하게 정리합니다. 서론, 본론, 결론의 구조를 갖춰 작성해보세요."}<br />
-                                    활동의 가치를 증명하는 <span className="font-semibold text-red-600">최종 결과물</span>을 만듭니다.
+                                    {guideData?.description || "지금까지 수행한 모든 과정을 AI가 정리하여 초안을 만들었습니다. 내용을 다듬어 완성해보세요."}
                                 </p>
                             </div>
                             <div className="hidden sm:flex w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-full items-center justify-center text-red-600">
@@ -123,49 +178,83 @@ export default function Step4Page() {
                     {/* Report Drafting Card */}
                     <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700 relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
-                        <h3 className="flex items-center text-lg font-bold mb-6 text-gray-900 dark:text-gray-100">
-                            <span className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center text-sm font-bold mr-3">1</span>
-                            구조 잡기 (Drafting)
-                        </h3>
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="flex items-center text-lg font-bold text-gray-900 dark:text-gray-100">
+                                <span className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center text-sm font-bold mr-3">1</span>
+                                AI 보고서 초안 (Drafting)
+                            </h3>
+                            <div className="flex items-center gap-2 text-sm text-green-600 font-medium bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full">
+                                <Sparkles className="w-4 h-4" />
+                                <span>이전 단계 내용을 바탕으로 자동 생성됨</span>
+                            </div>
+                        </div>
 
-                        <div className="space-y-6 mb-8">
+                        <div className="space-y-8 mb-8">
+                            {/* Introduction */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">1. 서론 (탐구 동기 및 목적)</label>
-                                <p className="text-xs text-gray-500 mb-2">Step 1에서 작성한 '배경 이론'과 '교과 연계성'을 녹여내세요.</p>
+                                <label className="block text-sm font-bold text-gray-900 dark:text-gray-100 mb-2 border-l-4 border-red-500 pl-2">
+                                    1. 서론 (Introduction)
+                                </label>
+                                <p className="text-xs text-gray-500 mb-2 pl-3">탐구 동기, 목적, 그리고 이론적 배경(Step 1, 2)을 포함합니다.</p>
                                 <textarea
-                                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-sm h-32 resize-none"
-                                    placeholder="이 주제를 선정하게 된 이유와, 이 탐구를 통해 알아보고자 하는 바를 명확히 적습니다."
+                                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-sm h-64 resize-none leading-relaxed focus:ring-2 focus:ring-red-500 focus:border-transparent font-medium text-gray-700 dark:text-gray-300 whitespace-pre-wrap"
+                                    placeholder={loading ? "AI가 초안을 작성 중입니다..." : "서론 내용을 작성하세요."}
+                                    value={intro}
+                                    onChange={(e) => setIntro(e.target.value)}
                                 ></textarea>
                             </div>
 
+                            {/* Body */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">2. 본론 (탐구 과정 및 결과)</label>
-                                <p className="text-xs text-gray-500 mb-2">Step 3에서 수집한 데이터와 분석 내용을 구체적으로 기술하세요.</p>
+                                <label className="block text-sm font-bold text-gray-900 dark:text-gray-100 mb-2 border-l-4 border-red-500 pl-2">
+                                    2. 본론 (Body)
+                                </label>
+                                <p className="text-xs text-gray-500 mb-2 pl-3">탐구 방법(Step 3)과 구체적인 결과 및 분석을 기술합니다.</p>
                                 <textarea
-                                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-sm h-32 resize-none"
-                                    placeholder="어떤 방식으로 실험을 진행했는지, 그 결과 어떤 데이터가 나왔는지 객관적으로 서술합니다."
+                                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-sm h-96 resize-none leading-relaxed focus:ring-2 focus:ring-red-500 focus:border-transparent font-medium text-gray-700 dark:text-gray-300"
+                                    placeholder={loading ? "AI가 초안을 작성 중입니다..." : "본론 내용을 작성하세요."}
+                                    value={body}
+                                    onChange={(e) => setBody(e.target.value)}
                                 ></textarea>
                             </div>
 
+                            {/* Conclusion */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">3. 결론 (고찰 및 제언)</label>
-                                <p className="text-xs text-gray-500 mb-2">결과가 갖는 의미와 아쉬웠던 점, 더 발전시킬 방향을 적으세요.</p>
+                                <label className="block text-sm font-bold text-gray-900 dark:text-gray-100 mb-2 border-l-4 border-red-500 pl-2">
+                                    3. 결론 (Conclusion)
+                                </label>
+                                <p className="text-xs text-gray-500 mb-2 pl-3">핵심 결과 요약과 연구의 한계, 제언을 작성합니다.</p>
                                 <textarea
-                                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-sm h-32 resize-none"
-                                    placeholder="가설이 검증되었는지 판단하고, 이 탐구가 가지는 의의를 마무리합니다."
+                                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-sm h-48 resize-none leading-relaxed focus:ring-2 focus:ring-red-500 focus:border-transparent font-medium text-gray-700 dark:text-gray-300"
+                                    placeholder={loading ? "AI가 초안을 작성 중입니다..." : "결론 내용을 작성하세요."}
+                                    value={conclusion}
+                                    onChange={(e) => setConclusion(e.target.value)}
                                 ></textarea>
                             </div>
                         </div>
 
-                        <div className="flex gap-3">
-                            <Link href={`/report/${id}/inquiry-guide/step-3?topic=${encodeURIComponent(topicParam || '')}`} className="flex-1 py-3 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl font-bold transition-colors flex items-center justify-center gap-2">
+                        <div className="flex gap-3 pt-6 border-t border-gray-100 dark:border-gray-700">
+                            <Link href={`/report/${id}/inquiry-guide/step-3?topic=${encodeURIComponent(topicParam || '')}`} className="px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
                                 <ArrowLeft className="w-5 h-5" />
                                 이전 단계
                             </Link>
-                            <button className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-red-500/30">
-                                <Download className="w-5 h-5" />
-                                PDF로 저장하기
+
+                            <button
+                                onClick={handleSave}
+                                className="flex-1 py-3 bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 rounded-lg font-bold transition-colors"
+                            >
+                                임시 저장
                             </button>
+
+                            <Link
+                                href={`/report/${id}/inquiry-guide/complete?topic=${encodeURIComponent(topicParam || '')}`}
+                                onClick={handleSave} // Save before navigating
+                                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-red-500/30"
+                            >
+                                <FileText className="w-5 h-5" />
+                                최종 보고서 보기
+                                <ArrowRight className="w-5 h-5" />
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -196,21 +285,22 @@ export default function Step4Page() {
                         </div>
                     </div>
 
-                    {/* AI Helper */}
-                    <div className="bg-gradient-to-br from-red-600 to-orange-700 rounded-xl p-6 shadow-lg text-white relative overflow-hidden">
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Sparkles className="text-yellow-300 w-5 h-5" />
-                                <h3 className="font-bold text-sm">AI 첨삭 도우미</h3>
-                            </div>
-                            <p className="text-xs text-red-100 mb-4 leading-relaxed">
-                                문장이 매끄럽지 않거나 논리적 비약이 걱정되나요? AI가 보고서 초안을 검토하고 피드백을 제공합니다.
-                            </p>
-                            <button className="w-full py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-sm font-medium transition-colors border border-white/20">
-                                보고서 초안 검토받기
-                            </button>
-                        </div>
-                        <div className="absolute -bottom-8 -right-8 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+                    {/* Tips */}
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                        <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 text-sm">작성 Tips</h3>
+                        <ul className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
+                            {guideData?.tips?.map((tip, idx) => (
+                                <li key={idx} className="flex gap-2">
+                                    <span className="text-red-500 font-bold">•</span>
+                                    {tip}
+                                </li>
+                            )) || (
+                                    <>
+                                        <li className="flex gap-2"><span className="text-red-500 font-bold">•</span> AI가 작성한 내용은 초안입니다. 본인의 어투로 다듬어주세요.</li>
+                                        <li className="flex gap-2"><span className="text-red-500 font-bold">•</span> 수치는 정확하게 기입해야 신뢰도가 높아집니다.</li>
+                                    </>
+                                )}
+                        </ul>
                     </div>
 
                     {/* Check Points */}
