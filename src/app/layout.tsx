@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 import { Header } from '@/components/Header';
 
 import { MindMapProvider } from '@/context/MindMapContext';
+import { AuthProvider } from '@/components/providers/auth-provider';
 
 export default function RootLayout({
   children,
@@ -28,15 +29,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50`}
-      >
-        <MindMapProvider>
-          <Header />
-          <main className="min-h-screen pt-16">
-            {children}
-          </main>
-        </MindMapProvider>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50`}>
+        <AuthProvider>
+          <MindMapProvider>
+            <Header />
+            <main className="min-h-screen pt-16">
+              {children}
+            </main>
+          </MindMapProvider>
+        </AuthProvider>
       </body>
     </html>
   );

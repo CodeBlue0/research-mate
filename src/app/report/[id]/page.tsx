@@ -6,7 +6,9 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Share2, Bookmark, ChevronRight, FileText, Loader2, Book, Sparkles, Lightbulb, Microscope } from 'lucide-react';
 import Link from 'next/link';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/components/providers/auth-provider';
 
 interface ReportData {
     title: string;
@@ -27,6 +29,9 @@ function ReportPageContent() {
 
     const [data, setData] = useState<ReportData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const { user } = useAuth();
+    const router = useRouter();
 
     useEffect(() => {
         const fetchReport = async () => {
@@ -58,6 +63,36 @@ function ReportPageContent() {
 
         fetchReport();
     }, [topicParam]);
+
+    const handleSaveProject = async () => {
+        if (!user || !data) {
+            router.push('/login');
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const { error } = await supabase
+                .from('projects')
+                .insert({
+                    user_id: user.id,
+                    title: data.title,
+                    topic: topicParam || data.title,
+                    subject: 'math', // Default for now
+                    status: 'completed'
+                });
+
+            if (error) throw error;
+
+            alert('프로젝트가 저장되었습니다!');
+            router.push('/dashboard');
+        } catch (error) {
+            console.error('Error saving project:', error);
+            alert('저장 중 오류가 발생했습니다.');
+        } finally {
+            setSaving(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -224,8 +259,13 @@ function ReportPageContent() {
                         </Card>
 
                         <div className="grid grid-cols-2 gap-3">
-                            <Button className="w-full bg-slate-900 hover:bg-slate-800 font-bold h-12">
-                                <Bookmark className="w-4 h-4 mr-2" /> 저장
+                            <Button
+                                className="w-full bg-slate-900 hover:bg-slate-800 font-bold h-12"
+                                onClick={handleSaveProject}
+                                disabled={saving}
+                            >
+                                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bookmark className="w-4 h-4 mr-2" />}
+                                저장
                             </Button>
                             <Button variant="outline" className="w-full font-bold h-12 border-slate-300">
                                 <Share2 className="w-4 h-4 mr-2" /> 공유
