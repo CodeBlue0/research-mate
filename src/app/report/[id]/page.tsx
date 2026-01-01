@@ -143,23 +143,28 @@ function ReportPageContent() {
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {data.coreConcepts.map((concept, idx) => (
-                                    <div key={idx} className="group relative bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                                        <div className="h-40 overflow-hidden bg-slate-200">
-                                            {concept.image ? (
-                                                <img src={concept.image} alt={concept.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-slate-400">No Image</div>
-                                            )}
+                                    <Link key={idx} href={`/report/${id}/concept/${idx}?topic=${encodeURIComponent(topicParam || '')}`} className="block group">
+                                        <div className="group relative bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
+                                            <div className="h-40 overflow-hidden bg-slate-200">
+                                                {concept.image ? (
+                                                    <img src={concept.image} alt={concept.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-slate-400">No Image</div>
+                                                )}
+                                            </div>
+                                            <div className="p-6">
+                                                <h3 className="font-bold text-xl mb-2 text-slate-800 group-hover:text-blue-600 transition-colors">
+                                                    {concept.name}
+                                                </h3>
+                                                <p className="text-slate-600 text-sm leading-relaxed line-clamp-3">
+                                                    {concept.description}
+                                                </p>
+                                                <div className="mt-4 flex items-center text-blue-600 font-semibold text-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    자세히 보기 <ChevronRight className="w-4 h-4 ml-1" />
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="p-6">
-                                            <h3 className="font-bold text-xl mb-2 text-slate-800 group-hover:text-blue-600 transition-colors">
-                                                {concept.name}
-                                            </h3>
-                                            <p className="text-slate-600 text-sm leading-relaxed">
-                                                {concept.description}
-                                            </p>
-                                        </div>
-                                    </div>
+                                    </Link>
                                 ))}
                             </div>
                         </section>
@@ -171,17 +176,19 @@ function ReportPageContent() {
                             </h2>
                             <div className="space-y-4">
                                 {data.inquiryGuide.map((step, idx) => (
-                                    <div key={idx} className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex gap-6 items-start hover:border-blue-200 transition-colors">
-                                        <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-slate-50 text-slate-900 font-bold flex items-center justify-center text-xl shadow-sm">
-                                            {idx + 1}
+                                    <Link key={idx} href={`/report/${id}/inquiry-guide/step-${idx + 1}?topic=${encodeURIComponent(topicParam || '')}`} className="block group">
+                                        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex gap-6 items-start hover:border-blue-200 transition-all group-hover:shadow-md">
+                                            <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-slate-50 text-slate-900 font-bold flex items-center justify-center text-xl shadow-sm group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                                                {idx + 1}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-lg mb-2 text-slate-800 group-hover:text-blue-600 transition-colors">
+                                                    {idx === 0 ? "배경 이론 조사" : idx === 1 ? "교과 연결 고리 찾기" : idx === 2 ? "실험 및 활동 수행" : "보고서 작성"}
+                                                </h3>
+                                                <p className="text-slate-600 leading-relaxed">{step}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="font-bold text-lg mb-2 text-slate-800">
-                                                {idx === 0 ? "배경 이론 조사" : idx === 1 ? "교과 연결 고리 찾기" : idx === 2 ? "실험 및 활동 수행" : "보고서 작성"}
-                                            </h3>
-                                            <p className="text-slate-600 leading-relaxed">{step}</p>
-                                        </div>
-                                    </div>
+                                    </Link>
                                 ))}
                             </div>
                         </section>

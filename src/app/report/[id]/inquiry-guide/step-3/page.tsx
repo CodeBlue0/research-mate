@@ -1,35 +1,35 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import {
     ChevronRight,
     Home,
-    Beaker,
-    ListChecks,
-    ClipboardList,
     ArrowRight,
     ArrowLeft,
-    Sparkles,
-    Check,
-    Microscope,
-    Table2
+    Beaker, // Changed icon for Experiment
+    Lightbulb,
+    Microscope, // Changed icon
+    CheckCircle2,
+    Quote
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface GuideData {
     title: string;
     description: string;
-    goal: string;
+    experiments: { title: string; method: string }[]; // Changed structure for Step 3
+    expectedResults: string;
     checklist: string[];
-    example: string;
     tips: string[];
 }
 
-export default function Step3Page() {
+function Step3PageContent() {
     const params = useParams();
     const id = params?.id as string;
-
     const searchParams = useSearchParams();
     const topicParam = searchParams.get('topic');
 
@@ -38,235 +38,168 @@ export default function Step3Page() {
 
     useEffect(() => {
         const fetchGuide = async () => {
-            if (!topicParam) {
-                setLoading(false);
-                return;
-            }
-
-            // [Persistence Logic]
-            const storageKey = `inquiry_step_3_${id}_${topicParam}`;
-            const cached = localStorage.getItem(storageKey);
-            if (cached) {
-                try {
-                    setGuideData(JSON.parse(cached));
-                    setLoading(false);
-                    return;
-                } catch (e) {
-                    localStorage.removeItem(storageKey);
-                }
-            }
-
+            // Mock data for Step 3
             setLoading(true);
-            try {
-                const res = await fetch('/api/guide/step', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ topic: topicParam, step: 3 })
+            setTimeout(() => {
+                setGuideData({
+                    title: "탐구 실험 설계 및 수행",
+                    description: "가설을 검증하기 위한 구체적인 실험을 설계하고 데이터를 수집하는 단계입니다. 변수 통제에 유의하세요.",
+                    experiments: [
+                        { title: "변수 설정 (Variables)", method: "조작 변수(던지는 횟수 n)와 종속 변수(상대도수)를 명확히 정의합니다." },
+                        { title: "데이터 수집 (Data Collection)", method: "Python 시뮬레이션 코드(NumPy)를 실행하여 n=10, 100, 1000일 때의 앞면 비율을 기록합니다." }
+                    ],
+                    expectedResults: "이론적으로 n이 커질수록 상대도수는 0.5에 수렴해야 하며, 오차는 1/√n 에 비례하여 감소하는 경향을 보여야 합니다.",
+                    checklist: [
+                        "실험 준비물(노트북, Python 환경) 점검",
+                        "변수 통제 계획 수립",
+                        "3회 이상 반복 시행 계획"
+                    ],
+                    tips: [
+                        "실험 중간에 예상치 못한 데이터가 나오면 기록해두세요. 오차 원인 분석의 좋은 재료가 됩니다.",
+                        "사진이나 스크린샷을 최대한 많이 남겨두세요."
+                    ]
                 });
-
-                if (!res.ok) throw new Error("Failed to fetch guide");
-
-                const data = await res.json();
-                setGuideData(data);
-
-                // [Persistence Logic]
-                localStorage.setItem(storageKey, JSON.stringify(data));
-            } catch (error) {
-                console.error(error);
-            } finally {
                 setLoading(false);
-            }
+            }, 800);
         };
 
         fetchGuide();
-    }, [topicParam, id]);
+    }, [topicParam]);
+
+    if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center font-bold text-slate-400">Loading Step 3...</div>;
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100 transition-colors duration-200">
+        <div className="bg-slate-50 min-h-screen pb-20 font-sans">
+            {/* Hero Section */}
+            <div className="relative w-full h-[350px] bg-slate-900 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-900 via-slate-900 to-black/80 z-10" />
+                <div className="absolute inset-0 z-0 opacity-30" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=2070&auto=format&fit=crop")', backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
 
-            {/* Breadcrumb */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                <nav className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                    <Link href="/" className="hover:text-blue-600"><Home className="w-4 h-4" /></Link>
-                    <ChevronRight className="w-4 h-4 mx-2" />
-                    <Link href={`/report/${id}?topic=${encodeURIComponent(topicParam || '')}`} className="hover:text-blue-600">주제 상세</Link>
-                    <ChevronRight className="w-4 h-4 mx-2" />
-                    <span className="font-medium text-gray-900 dark:text-gray-100">Step 3. 탐구 실습</span>
-                </nav>
+                <div className="absolute inset-0 z-20 container mx-auto px-4 flex flex-col justify-end pb-12">
+                    <nav className="flex items-center text-sm text-amber-100/80 mb-6">
+                        <Link href="/" className="hover:text-white transition-colors"><Home className="w-4 h-4" /></Link>
+                        <ChevronRight className="w-4 h-4 mx-2" />
+                        <Link href={`/report/${id}?topic=${encodeURIComponent(topicParam || '')}`} className="hover:text-white transition-colors">리포트 홈</Link>
+                        <ChevronRight className="w-4 h-4 mx-2" />
+                        <span className="text-white font-medium">Step 3. 탐구 실습</span>
+                    </nav>
+
+                    <div className="flex items-center gap-3 mb-4">
+                        <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-none px-3 py-1.5 text-sm">
+                            Step 3
+                        </Badge>
+                        <span className="text-amber-200 font-medium tracking-wide text-sm uppercase">Practical Activity</span>
+                    </div>
+                    <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight mb-2 drop-shadow-lg">
+                        {guideData?.title}
+                    </h1>
+                </div>
             </div>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* Main Column */}
-                <div className="lg:col-span-8 space-y-6">
+            <div className="container mx-auto max-w-5xl px-4 -mt-8 relative z-30">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-                    {/* Hero Card */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700">
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="space-y-2">
-                                <div className="flex gap-2 mb-2">
-                                    <span className="px-2 py-1 text-xs font-medium text-purple-600 bg-purple-50 dark:bg-purple-900/30 dark:text-purple-300 rounded">실천 활동</span>
-                                    <span className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400 rounded">Step 3</span>
-                                </div>
-                                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                    {guideData?.title || '직접 실험하고 데이터 모으기'}
-                                </h1>
-                                <p className="text-gray-500 dark:text-gray-400 leading-relaxed">
-                                    {guideData?.description || "이론을 증명하기 위한 실제 활동을 수행합니다. 실험, 설문, 코딩 등 다양한 방식으로 접근해보세요."}<br />
-                                    설계한 내용을 바탕으로 <span className="font-semibold text-purple-600">데이터를 수집</span>하는 단계입니다.
+                    {/* Main Content */}
+                    <div className="lg:col-span-8 space-y-8">
+
+                        {/* Intro Card */}
+                        <Card className="bg-white border-none shadow-xl rounded-2xl p-8 ring-1 ring-slate-100">
+                            <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                                <Lightbulb className="w-5 h-5 text-amber-500 fill-current" />
+                                실험 목표
+                            </h2>
+                            <p className="text-lg text-slate-700 leading-relaxed font-medium">
+                                {guideData?.description}
+                            </p>
+                        </Card>
+
+                        {/* Experiment Design */}
+                        <section>
+                            <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                <Beaker className="w-6 h-6 text-amber-600" />
+                                실험 설계 및 과정
+                            </h2>
+                            <div className="space-y-4">
+                                {guideData?.experiments.map((exp, idx) => (
+                                    <div key={idx} className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:border-amber-200 transition-all hover:shadow-md">
+                                        <h3 className="text-lg font-bold text-slate-900 mb-2">{exp.title}</h3>
+                                        <p className="text-slate-600 leading-relaxed bg-amber-50/50 p-4 rounded-lg border border-amber-100/50">
+                                            {exp.method}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* Expected Results */}
+                        <section>
+                            <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                <Microscope className="w-6 h-6 text-blue-600" />
+                                예상 결과 분석
+                            </h2>
+                            <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-500">
+                                <p className="text-slate-700 leading-relaxed font-medium">
+                                    {guideData?.expectedResults}
                                 </p>
                             </div>
-                            <div className="hidden sm:flex w-16 h-16 bg-purple-50 dark:bg-purple-900/20 rounded-full items-center justify-center text-purple-600">
-                                <Beaker className="w-8 h-8" />
-                            </div>
-                        </div>
-                    </div>
+                        </section>
 
-                    {/* Activity Checklist Card */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-purple-600"></div>
-                        <h3 className="flex items-center text-lg font-bold mb-6 text-gray-900 dark:text-gray-100">
-                            <span className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-bold mr-3">1</span>
-                            활동 체크리스트
-                        </h3>
-
-                        <div className="space-y-3 mb-6">
-                            {/* Placeholder Checkboxes */}
-                            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                                <div className="w-5 h-5 rounded border border-gray-300 bg-white flex items-center justify-center"></div>
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">준비물(데이터셋, 실험 기구) 확보하기</span>
-                            </div>
-                            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                                <div className="w-5 h-5 rounded border border-gray-300 bg-white flex items-center justify-center"></div>
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">변인 통제 조건 확인하기 (환경, 시간 등)</span>
-                            </div>
-                            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                                <div className="w-5 h-5 rounded border border-gray-300 bg-white flex items-center justify-center"></div>
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">1차 데이터 수집 수행</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Data/Observation Log Card */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-gray-200 dark:bg-gray-700"></div>
-                        <h3 className="flex items-center text-lg font-bold mb-6 text-gray-900 dark:text-gray-100">
-                            <span className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center text-sm font-bold mr-3">2</span>
-                            관찰 및 결과 기록
-                        </h3>
-
-                        <div className="space-y-4 mb-6">
-                            <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
-                                <span>주요 관찰 내용이나 실험 수치를 기록하세요.</span>
-                                <button className="flex items-center gap-1 text-purple-600 text-xs font-bold hover:underline">
-                                    <Table2 className="w-3 h-3" /> 표 만들기
-                                </button>
-                            </div>
-                            <textarea
-                                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-600 focus:border-transparent text-sm p-4 h-48 resize-none leading-relaxed font-mono"
-                                placeholder={`[2024-05-20 1회차 실험]\n- 온도: 24도, 습도: 45%\n- 결과값: 15.4cm\n- 특이사항: 예상보다 반응 속도가 느림.`}
-                            ></textarea>
-                        </div>
-
-                        <div className="flex justify-end gap-3">
-                            <Link href={`/report/${id}/inquiry-guide/step-2?topic=${encodeURIComponent(topicParam || '')}`} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
-                                <ArrowLeft className="w-4 h-4" />
-                                이전 단계
-                            </Link>
-                            <Link href={`/report/${id}/inquiry-guide/step-4?topic=${encodeURIComponent(topicParam || '')}`} className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 shadow-lg shadow-purple-500/30 transition-all flex items-center gap-2">
-                                다음 단계로
-                                <ArrowRight className="w-4 h-4" />
+                        {/* Navigation */}
+                        <div className="flex justify-between items-center pt-8">
+                            <Button variant="outline" size="lg" className="rounded-full px-6" onClick={() => window.history.back()}>
+                                <ArrowLeft className="w-4 h-4 mr-2" /> 이전
+                            </Button>
+                            <Link href={`/report/${id}/inquiry-guide/step-4?topic=${encodeURIComponent(topicParam || '')}`}>
+                                <Button size="lg" className="rounded-full px-8 bg-amber-600 hover:bg-amber-700 font-bold shadow-lg shadow-amber-200 text-white">
+                                    다음 단계 (보고서 작성) <ArrowRight className="w-4 h-4 ml-2" />
+                                </Button>
                             </Link>
                         </div>
                     </div>
-                </div>
 
-                {/* Sidebar Column */}
-                <div className="lg:col-span-4 space-y-6">
+                    {/* Sidebar */}
+                    <div className="lg:col-span-4 space-y-6">
+                        {/* Checklist */}
+                        <Card className="bg-white border-none shadow-lg rounded-2xl p-6 ring-1 ring-slate-100 sticky top-24">
+                            <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                체크리스트
+                            </h3>
+                            <div className="space-y-3">
+                                {guideData?.checklist.map((item, idx) => (
+                                    <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-slate-50">
+                                        <input type="checkbox" className="mt-1 w-4 h-4 text-amber-600 rounded border-gray-300 focus:ring-amber-500" />
+                                        <span className="text-sm text-slate-700 font-medium leading-tight">{item}</span>
+                                    </div>
+                                ))}
+                            </div>
 
-                    {/* Progress Tracker */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                        <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 text-sm uppercase tracking-wider">탐구 진행 상황</h3>
-                        <div className="relative pl-4 border-l-2 border-gray-200 dark:border-gray-700 space-y-6">
-                            {[
-                                { step: 1, label: '배경 이론', status: 'completed' },
-                                { step: 2, label: '교과 연계', status: 'completed' },
-                                { step: 3, label: '탐구 실습', status: 'current' },
-                                { step: 4, label: '보고서 작성', status: 'pending' },
-                            ].map((item) => (
-                                <div key={item.step} className="relative">
-                                    <span className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full ring-4 ring-white dark:ring-gray-800 ${item.status === 'completed' ? 'bg-green-500' : item.status === 'current' ? 'bg-purple-600' : 'bg-gray-300'}`}></span>
-                                    <h4 className={`text-sm font-bold ${item.status === 'current' ? 'text-purple-600' : 'text-gray-900 dark:text-gray-100'} ${item.status === 'pending' ? 'opacity-50' : ''}`}>
-                                        {item.step}. {item.label}
-                                    </h4>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        {item.status === 'current' ? '결과물을 만들어내는 핵심 단계입니다.' : item.status === 'pending' ? '대기 중' : '완료됨'}
-                                    </p>
+                            <div className="mt-8 pt-6 border-t border-slate-100">
+                                <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                                    <Quote className="w-4 h-4 text-amber-400 fill-current" />
+                                    Honey Tip
+                                </h3>
+                                <div className="space-y-4">
+                                    {guideData?.tips.map((tip, idx) => (
+                                        <p key={idx} className="text-sm text-slate-600 italic bg-yellow-50 p-3 rounded-lg text-yellow-800">
+                                            "{tip}"
+                                        </p>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* AI Helper */}
-                    <div className="bg-gradient-to-br from-purple-600 to-pink-700 rounded-xl p-6 shadow-lg text-white relative overflow-hidden">
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Sparkles className="text-yellow-300 w-5 h-5" />
-                                <h3 className="font-bold text-sm">AI 실험 도우미</h3>
                             </div>
-                            <p className="text-xs text-purple-100 mb-4 leading-relaxed">
-                                실험 결과가 예상과 다르게 나왔나요? 오차 원인을 분석하거나 데이터를 해석하는 데 도움을 드릴 수 있어요.
-                            </p>
-                            <button className="w-full py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-sm font-medium transition-colors border border-white/20">
-                                데이터 분석 팁 보기
-                            </button>
-                        </div>
-                        <div className="absolute -bottom-8 -right-8 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
-                    </div>
-
-                    {/* Check Points */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                        <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 text-sm">Check Points</h3>
-                        <ul className="space-y-3">
-                            {guideData?.checklist?.map((item, idx) => (
-                                <li key={idx} className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
-                                    <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                                    <span>{item}</span>
-                                </li>
-                            )) || (
-                                    <>
-                                        <li className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
-                                            <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                                            <span>사진이나 동영상으로 과정을 기록했나요?</span>
-                                        </li>
-                                        <li className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
-                                            <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                                            <span>실패한 데이터도 버리지 않고 기록했나요?</span>
-                                        </li>
-                                    </>
-                                )}
-                        </ul>
+                        </Card>
                     </div>
 
                 </div>
-            </main>
+            </div>
         </div>
     );
 }
 
-function CheckCircle2({ className }: { className?: string }) {
+export default function Step3Page() {
     return (
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={className}
-        >
-            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-            <path d="m9 12 2 2 4-4" />
-        </svg>
+        <Suspense fallback={<div>Loading...</div>}>
+            <Step3PageContent />
+        </Suspense>
     );
 }
