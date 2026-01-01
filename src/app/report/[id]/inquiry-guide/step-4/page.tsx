@@ -1,352 +1,198 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import {
     ChevronRight,
     Home,
-    FileText,
-    Download,
-    Printer,
     ArrowRight,
     ArrowLeft,
-    Sparkles,
+    FileText,
+    Download,
+    Wand2,
+    Save,
     Check,
-    PenTool,
-    Layout
+    Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from '@/components/ui/textarea';
 
-interface GuideData {
+interface ReportSection {
+    id: string;
     title: string;
-    description: string;
-    draft?: {
-        introduction: string;
-        body: string;
-        conclusion: string;
-    };
-    checklist: string[];
-    tips: string[];
+    content: string;
+    placeholder: string;
 }
 
-export default function Step4Page() {
+function Step4PageContent() {
     const params = useParams();
     const id = params?.id as string;
-
     const searchParams = useSearchParams();
     const topicParam = searchParams.get('topic');
 
-    const [guideData, setGuideData] = useState<GuideData | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [activeSection, setActiveSection] = useState("introduction");
+    const [isGenerating, setIsGenerating] = useState(false);
 
-    // Editable draft states
-    const [intro, setIntro] = useState("");
-    const [body, setBody] = useState("");
-    const [conclusion, setConclusion] = useState("");
+    // Initial Draft State
+    const [sections, setSections] = useState<Record<string, string>>({
+        introduction: "",
+        methods: "",
+        results: "",
+        conclusion: ""
+    });
 
-    useEffect(() => {
-        const fetchDraft = async () => {
-            if (!topicParam) {
-                setLoading(false);
-                return;
-            }
+    const handleGenerateDraft = () => {
+        setIsGenerating(true);
+        // Mock AI Generation
+        setTimeout(() => {
+            setSections({
+                introduction: "본 연구는 '큰 수의 법칙'이 실제 물리적 실험(동전 던지기)에서도 성립하는지를 확인하기 위해 수행되었다. 확률론적 관점에서 독립 시행의 횟수(n)가 증가함에 따라 통계적 확율이 수학적 확률에 수렴한다는 것을 가설로 설정하였다.",
+                methods: "Python 및 JavaScript 기반의 가상 실험 도구를 사용하여 동전 던지기 시뮬레이션을 수행하였다. 시행 횟수 n을 10회부터 10,000회까지 10배씩 증가시키며 앞면이 나온 횟수와 비율을 기록하였다. 변인 통제를 위해 동전의 앞/뒤 확률은 0.5로 고정하였다.",
+                results: "1. n=10일 때, 앞면 비율은 0.6(60%)로 수학적 확률(0.5)과 큰 오차를 보였다.\n2. n=100일 때, 비율은 0.54(54%)로 오차가 줄어들었다.\n3. n=10,000일 때, 비율은 0.501(50.1%)로 0.5에 매우 근접하였다.\n\n이는 그래프상에서도 0.5를 중심으로 진동폭이 줄어드는 형태로 관찰되었다.",
+                conclusion: "실험 결과, 시행 횟수가 증가함에 따라 상대도수는 수학적 확률 0.5에 수렴함을 확인하였다. 이는 큰 수의 법칙을 실험적으로 입증한 것이며, 오차 발생의 원인은 시행 횟수의 부족에 있음을 알 수 있다."
+            });
+            setIsGenerating(false);
+        }, 1500);
+    };
 
-            const storageKey = `inquiry_step_4_${id}_${topicParam}`;
-            const cached = localStorage.getItem(storageKey);
-
-            // If cached, load it
-            if (cached) {
-                try {
-                    const parsed = JSON.parse(cached);
-                    setGuideData(parsed);
-                    // Initialize editors with cached draft or empty
-                    if (parsed.draft) {
-                        setIntro(parsed.draft.introduction);
-                        setBody(parsed.draft.body);
-                        setConclusion(parsed.draft.conclusion);
-                    }
-                    setLoading(false);
-                    return;
-                } catch (e) {
-                    localStorage.removeItem(storageKey);
-                }
-            }
-
-            // Not cached, fetch from API with context
-            setLoading(true);
-            try {
-                // Gather Context from LocalStorage
-                const step1Data = JSON.parse(localStorage.getItem(`inquiry_step_1_${id}_${topicParam}`) || "{}");
-                const step2Data = JSON.parse(localStorage.getItem(`inquiry_step_2_${id}_${topicParam}`) || "{}");
-                const step3Data = JSON.parse(localStorage.getItem(`inquiry_step_3_${id}_${topicParam}`) || "{}");
-
-                const context = {
-                    step1: step1Data,
-                    step2: step2Data,
-                    step3: step3Data
-                };
-
-                const res = await fetch('/api/guide/step', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        topic: topicParam,
-                        step: 4,
-                        context: context // Send context to backend
-                    })
-                });
-
-                if (!res.ok) throw new Error("Failed to fetch guide");
-
-                const data = await res.json();
-                setGuideData(data);
-
-                if (data.draft) {
-                    setIntro(data.draft.introduction);
-                    setBody(data.draft.body);
-                    setConclusion(data.draft.conclusion);
-                }
-
-                // Save to LocalStorage
-                localStorage.setItem(storageKey, JSON.stringify(data));
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchDraft();
-    }, [topicParam, id]);
-
-    // Update LocalStorage when user edits (Auto-save effect logic could be here, but for now just simple state)
-    const handleSave = () => {
-        if (!guideData) return;
-        const updatedData = {
-            ...guideData,
-            draft: {
-                introduction: intro,
-                body: body,
-                conclusion: conclusion
-            }
-        };
-        localStorage.setItem(`inquiry_step_4_${id}_${topicParam}`, JSON.stringify(updatedData));
-        // Also save to a "Final Report" key for the next page to read Easily? 
-        // Or the next page can just read this key. Let's make the next page read this key.
-        alert("저장되었습니다.");
+    const handleContentChange = (value: string) => {
+        setSections(prev => ({
+            ...prev,
+            [activeSection]: value
+        }));
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100 transition-colors duration-200">
-
-            {/* Breadcrumb */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                <nav className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                    <Link href="/" className="hover:text-blue-600"><Home className="w-4 h-4" /></Link>
-                    <ChevronRight className="w-4 h-4 mx-2" />
-                    <Link href={`/report/${id}?topic=${encodeURIComponent(topicParam || '')}`} className="hover:text-blue-600">주제 상세</Link>
-                    <ChevronRight className="w-4 h-4 mx-2" />
-                    <span className="font-medium text-gray-900 dark:text-gray-100">Step 4. 보고서 작성</span>
-                </nav>
+        <div className="bg-slate-50 min-h-screen pb-20 font-sans">
+            {/* Hero Section - Compact Version for Editor */}
+            <div className="w-full bg-slate-900 border-b border-white/10">
+                <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <Link href="/" className="text-slate-400 hover:text-white transition-colors"><Home className="w-5 h-5" /></Link>
+                        <ChevronRight className="w-4 h-4 text-slate-600" />
+                        <span className="text-slate-200 font-bold">탐구 보고서 에디터</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" className="text-slate-400 hover:text-white">
+                            <Save className="w-4 h-4 mr-2" /> 저장
+                        </Button>
+                        <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                            <Download className="w-4 h-4 mr-2" /> PDF 내보내기
+                        </Button>
+                    </div>
+                </div>
             </div>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* Main Column */}
-                <div className="lg:col-span-8 space-y-6">
+            <div className="container mx-auto max-w-6xl px-4 py-8 h-[calc(100vh-64px)]">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
 
-                    {/* Hero Card */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700">
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="space-y-2">
-                                <div className="flex gap-2 mb-2">
-                                    <span className="px-2 py-1 text-xs font-medium text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-300 rounded">최종 정리</span>
-                                    <span className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400 rounded">Step 4</span>
-                                </div>
-                                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                    {guideData?.title || '나만의 탐구 보고서 완성하기'}
-                                </h1>
-                                <p className="text-gray-500 dark:text-gray-400 leading-relaxed">
-                                    {guideData?.description || "지금까지 수행한 모든 과정을 AI가 정리하여 초안을 만들었습니다. 내용을 다듬어 완성해보세요."}
-                                </p>
-                            </div>
-                            <div className="hidden sm:flex w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-full items-center justify-center text-red-600">
-                                <FileText className="w-8 h-8" />
-                            </div>
-                        </div>
-                    </div>
+                    {/* Left: Navigation & Preview */}
+                    <div className="lg:col-span-3 h-full flex flex-col gap-4">
+                        <Card className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex-1">
+                            <h3 className="font-bold text-slate-900 mb-4 px-2">목차</h3>
+                            <nav className="space-y-1">
+                                {['introduction', 'methods', 'results', 'conclusion'].map((sec) => (
+                                    <button
+                                        key={sec}
+                                        onClick={() => setActiveSection(sec)}
+                                        className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-between ${activeSection === sec
+                                                ? 'bg-blue-50 text-blue-700 border border-blue-100 shadow-sm'
+                                                : 'text-slate-600 hover:bg-slate-50'
+                                            }`}
+                                    >
+                                        <span className="capitalize">{sec}</span>
+                                        {sections[sec] && <Check className="w-3 h-3 text-blue-500" />}
+                                    </button>
+                                ))}
+                            </nav>
 
-                    {/* Report Drafting Card */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-200 dark:border-gray-700 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="flex items-center text-lg font-bold text-gray-900 dark:text-gray-100">
-                                <span className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center text-sm font-bold mr-3">1</span>
-                                AI 보고서 초안 (Drafting)
-                            </h3>
-                            <div className="flex items-center gap-2 text-sm text-green-600 font-medium bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full">
-                                <Sparkles className="w-4 h-4" />
-                                <span>이전 단계 내용을 바탕으로 자동 생성됨</span>
-                            </div>
-                        </div>
-
-                        <div className="space-y-8 mb-8">
-                            {/* Introduction */}
-                            <div>
-                                <label className="block text-sm font-bold text-gray-900 dark:text-gray-100 mb-2 border-l-4 border-red-500 pl-2">
-                                    1. 서론 (Introduction)
-                                </label>
-                                <p className="text-xs text-gray-500 mb-2 pl-3">탐구 동기, 목적, 그리고 이론적 배경(Step 1, 2)을 포함합니다.</p>
-                                <textarea
-                                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-sm h-64 resize-none leading-relaxed focus:ring-2 focus:ring-red-500 focus:border-transparent font-medium text-gray-700 dark:text-gray-300 whitespace-pre-wrap"
-                                    placeholder={loading ? "AI가 초안을 작성 중입니다..." : "서론 내용을 작성하세요."}
-                                    value={intro}
-                                    onChange={(e) => setIntro(e.target.value)}
-                                ></textarea>
-                            </div>
-
-                            {/* Body */}
-                            <div>
-                                <label className="block text-sm font-bold text-gray-900 dark:text-gray-100 mb-2 border-l-4 border-red-500 pl-2">
-                                    2. 본론 (Body)
-                                </label>
-                                <p className="text-xs text-gray-500 mb-2 pl-3">탐구 방법(Step 3)과 구체적인 결과 및 분석을 기술합니다.</p>
-                                <textarea
-                                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-sm h-96 resize-none leading-relaxed focus:ring-2 focus:ring-red-500 focus:border-transparent font-medium text-gray-700 dark:text-gray-300"
-                                    placeholder={loading ? "AI가 초안을 작성 중입니다..." : "본론 내용을 작성하세요."}
-                                    value={body}
-                                    onChange={(e) => setBody(e.target.value)}
-                                ></textarea>
-                            </div>
-
-                            {/* Conclusion */}
-                            <div>
-                                <label className="block text-sm font-bold text-gray-900 dark:text-gray-100 mb-2 border-l-4 border-red-500 pl-2">
-                                    3. 결론 (Conclusion)
-                                </label>
-                                <p className="text-xs text-gray-500 mb-2 pl-3">핵심 결과 요약과 연구의 한계, 제언을 작성합니다.</p>
-                                <textarea
-                                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-sm h-48 resize-none leading-relaxed focus:ring-2 focus:ring-red-500 focus:border-transparent font-medium text-gray-700 dark:text-gray-300"
-                                    placeholder={loading ? "AI가 초안을 작성 중입니다..." : "결론 내용을 작성하세요."}
-                                    value={conclusion}
-                                    onChange={(e) => setConclusion(e.target.value)}
-                                ></textarea>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-3 pt-6 border-t border-gray-100 dark:border-gray-700">
-                            <Link href={`/report/${id}/inquiry-guide/step-3?topic=${encodeURIComponent(topicParam || '')}`} className="px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
-                                <ArrowLeft className="w-5 h-5" />
-                                이전 단계
-                            </Link>
-
-                            <button
-                                onClick={handleSave}
-                                className="flex-1 py-3 bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 rounded-lg font-bold transition-colors"
-                            >
-                                임시 저장
-                            </button>
-
-                            <Link
-                                href={`/report/${id}/inquiry-guide/complete?topic=${encodeURIComponent(topicParam || '')}`}
-                                onClick={handleSave} // Save before navigating
-                                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-red-500/30"
-                            >
-                                <FileText className="w-5 h-5" />
-                                최종 보고서 보기
-                                <ArrowRight className="w-5 h-5" />
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Sidebar Column */}
-                <div className="lg:col-span-4 space-y-6">
-
-                    {/* Progress Tracker */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                        <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 text-sm uppercase tracking-wider">탐구 진행 상황</h3>
-                        <div className="relative pl-4 border-l-2 border-gray-200 dark:border-gray-700 space-y-6">
-                            {[
-                                { step: 1, label: '배경 이론', status: 'completed' },
-                                { step: 2, label: '교과 연계', status: 'completed' },
-                                { step: 3, label: '탐구 실습', status: 'completed' },
-                                { step: 4, label: '보고서 작성', status: 'current' },
-                            ].map((item) => (
-                                <div key={item.step} className="relative">
-                                    <span className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full ring-4 ring-white dark:ring-gray-800 ${item.status === 'completed' ? 'bg-green-500' : item.status === 'current' ? 'bg-red-600' : 'bg-gray-300'}`}></span>
-                                    <h4 className={`text-sm font-bold ${item.status === 'current' ? 'text-red-600' : 'text-gray-900 dark:text-gray-100'} ${item.status === 'pending' ? 'opacity-50' : ''}`}>
-                                        {item.step}. {item.label}
-                                    </h4>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        {item.status === 'current' ? '대장정을 마무리하는 단계입니다!' : item.status === 'pending' ? '대기 중' : '완료됨'}
+                            <div className="mt-8 px-2">
+                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Completion</h4>
+                                    <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                        <div
+                                            className="bg-blue-500 h-full transition-all duration-500"
+                                            style={{ width: `${(Object.values(sections).filter(v => v.length > 0).length / 4) * 100}%` }}
+                                        />
+                                    </div>
+                                    <p className="text-right text-xs text-slate-500 mt-1">
+                                        {Object.values(sections).filter(v => v.length > 0).length} / 4 Sections
                                     </p>
                                 </div>
-                            ))}
+                            </div>
+                        </Card>
+                    </div>
+
+                    {/* Right: Editor Area */}
+                    <div className="lg:col-span-9 h-full flex flex-col">
+                        <Card className="bg-white flex-1 shadow-lg border-slate-200 overflow-hidden flex flex-col relative">
+
+                            {/* Toolbar */}
+                            <div className="h-14 border-b border-slate-100 flex items-center justify-between px-6 bg-slate-50">
+                                <h2 className="text-lg font-bold text-slate-800 capitalize">
+                                    {activeSection}
+                                </h2>
+
+                                {sections[activeSection] === "" && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
+                                        onClick={handleGenerateDraft}
+                                        disabled={isGenerating}
+                                    >
+                                        {isGenerating ? (
+                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> 작성 중...</>
+                                        ) : (
+                                            <><Wand2 className="w-4 h-4 mr-2" /> AI 초안 생성</>
+                                        )}
+                                    </Button>
+                                )}
+                            </div>
+
+                            {/* Text Area */}
+                            <div className="flex-1 p-8 bg-white overflow-y-auto">
+                                <Textarea
+                                    value={sections[activeSection]}
+                                    onChange={(e) => handleContentChange(e.target.value)}
+                                    placeholder={`Write your ${activeSection} here...`}
+                                    className="w-full h-full min-h-[500px] resize-none border-none focus-visible:ring-0 text-lg leading-relaxed text-slate-700 p-0 placeholder:text-slate-300"
+                                />
+                            </div>
+
+                            {/* Floating Stats */}
+                            <div className="absolute bottom-6 right-6 text-xs text-slate-300 pointer-events-none">
+                                {sections[activeSection].length} characters
+                            </div>
+                        </Card>
+
+                        {/* Navigation Footer */}
+                        <div className="flex justify-between items-center pt-8 mt-2">
+                            <Button variant="outline" size="lg" className="rounded-full px-6 bg-white border-slate-200" onClick={() => window.history.back()}>
+                                <ArrowLeft className="w-4 h-4 mr-2" /> 이전 단계
+                            </Button>
+                            <Link href={`/report/${id}/inquiry-guide/complete?topic=${encodeURIComponent(topicParam || '')}`}>
+                                <Button size="lg" className="rounded-full px-8 bg-blue-600 hover:bg-blue-700 font-bold shadow-lg shadow-blue-200 text-white">
+                                    보고서 최종 완성 <Check className="w-4 h-4 ml-2" />
+                                </Button>
+                            </Link>
                         </div>
                     </div>
 
-                    {/* Tips */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                        <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 text-sm">작성 Tips</h3>
-                        <ul className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
-                            {guideData?.tips?.map((tip, idx) => (
-                                <li key={idx} className="flex gap-2">
-                                    <span className="text-red-500 font-bold">•</span>
-                                    {tip}
-                                </li>
-                            )) || (
-                                    <>
-                                        <li className="flex gap-2"><span className="text-red-500 font-bold">•</span> AI가 작성한 내용은 초안입니다. 본인의 어투로 다듬어주세요.</li>
-                                        <li className="flex gap-2"><span className="text-red-500 font-bold">•</span> 수치는 정확하게 기입해야 신뢰도가 높아집니다.</li>
-                                    </>
-                                )}
-                        </ul>
-                    </div>
-
-                    {/* Check Points */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                        <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 text-sm">Check Points</h3>
-                        <ul className="space-y-3">
-                            {guideData?.checklist?.map((item, idx) => (
-                                <li key={idx} className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
-                                    <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                                    <span>{item}</span>
-                                </li>
-                            )) || (
-                                    <>
-                                        <li className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
-                                            <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                                            <span>맞춤법과 띄어쓰기를 확인했나요?</span>
-                                        </li>
-                                        <li className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
-                                            <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                                            <span>인용한 자료의 출처를 빠짐없이 표기했나요?</span>
-                                        </li>
-                                    </>
-                                )}
-                        </ul>
-                    </div>
-
                 </div>
-            </main>
+            </div>
         </div>
     );
 }
 
-function CheckCircle2({ className }: { className?: string }) {
+export default function Step4Page() {
     return (
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={className}
-        >
-            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-            <path d="m9 12 2 2 4-4" />
-        </svg>
+        <Suspense fallback={<div>Loading...</div>}>
+            <Step4PageContent />
+        </Suspense>
     );
 }
