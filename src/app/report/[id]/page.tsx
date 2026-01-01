@@ -4,7 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Share2, Bookmark, ChevronRight, FileText, Loader2, Book } from 'lucide-react';
+import { Share2, Bookmark, ChevronRight, FileText, Loader2, Book, Sparkles, Lightbulb, Microscope } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 
@@ -12,7 +12,8 @@ interface ReportData {
     title: string;
     subTitle: string;
     summary: string;
-    coreConcepts: { name: string; description: string }[];
+    mainImage?: string;
+    coreConcepts: { name: string; description: string; image?: string }[];
     curriculum: { name: string; description: string }[];
     inquiryGuide: string[];
     references: string[];
@@ -29,29 +30,28 @@ function ReportPageContent() {
 
     useEffect(() => {
         const fetchReport = async () => {
-            if (!topicParam) {
-                // If no topic param, we might want to default to something or show error
-                // For now, let's use a default if it's missing to prevent empty page during dev
-                setLoading(false);
-                return;
-            }
-
+            // Simulate network delay for "AI Generation" feel
             setLoading(true);
             try {
+                // If topicParam is empty, we still fetch to get the fallback
                 const res = await fetch('/api/report', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ topic: topicParam })
+                    body: JSON.stringify({ topic: topicParam || '' })
                 });
 
                 if (!res.ok) throw new Error("Failed to fetch report");
 
                 const result = await res.json();
-                console.log("Report Data:", result);
-                setData(result);
+
+                // Minimal artificial delay to show the loader if it happened too fast
+                setTimeout(() => {
+                    setData(result);
+                    setLoading(false);
+                }, 800);
+
             } catch (error) {
                 console.error(error);
-            } finally {
                 setLoading(false);
             }
         };
@@ -62,169 +62,170 @@ function ReportPageContent() {
     if (loading) {
         return (
             <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
-                <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-                <h2 className="text-xl font-bold text-slate-800">보고서 생성 중...</h2>
-                <p className="text-slate-500">DeepSeek AI가 연구 주제를 심층 분석하고 있습니다.</p>
+                <div className="relative">
+                    <div className="absolute inset-0 bg-blue-500 blur-xl opacity-20 animate-pulse rounded-full"></div>
+                    <Loader2 className="w-16 h-16 text-blue-600 animate-spin mb-6 relative z-10" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">AI가 보고서를 생성하고 있습니다...</h2>
+                <div className="flex gap-2 text-slate-500 text-sm animate-pulse">
+                    <span>데이터 분석 중</span>
+                    <span>•</span>
+                    <span>개념 연결 중</span>
+                    <span>•</span>
+                    <span>시각화 생성 중</span>
+                </div>
             </div>
         );
     }
 
-    // Fallback if no data (optional: keep mock data or show empty)
-    if (!data && !topicParam) {
-        // Render the original Mock structure if no topic is provided?
-        // Or just show message.
-        return <div className="min-h-screen flex items-center justify-center">주제를 선택해주세요.</div>;
-    }
-
-    // If data failed to load but we aren't loading, show error?
     if (!data) return <div className="min-h-screen flex items-center justify-center">데이터를 불러오지 못했습니다.</div>;
 
     return (
-        <div className="bg-slate-50 min-h-screen py-10">
-            <div className="container mx-auto max-w-4xl px-4">
-                {/* Breadcrumb */}
-                <div className="flex items-center gap-2 text-sm text-gray-500 mb-6 font-medium">
-                    <span>탐구 보고서</span> <ChevronRight className="w-4 h-4" />
-                    <span>심화 탐구</span> <ChevronRight className="w-4 h-4" />
-                    <Badge variant="secondary" className="text-green-600 bg-green-100 hover:bg-green-100 rounded-md">DeepSeek Generated</Badge>
-                </div>
-
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight mb-6">
+        <div className="bg-slate-50 min-h-screen pb-20">
+            {/* Hero Section */}
+            <div className="relative w-full h-[400px] bg-slate-900 overflow-hidden">
+                {data.mainImage && (
+                    <>
+                        <div className="absolute inset-0 bg-black/40 z-10" />
+                        <img
+                            src={data.mainImage}
+                            alt={data.title}
+                            className="w-full h-full object-cover opacity-80"
+                        />
+                    </>
+                )}
+                <div className="absolute inset-0 z-20 container mx-auto px-4 flex flex-col justify-end pb-12">
+                    <Badge className="w-fit mb-4 bg-blue-500/90 hover:bg-blue-600 border-none px-3 py-1 text-white backdrop-blur-sm shadow-sm">
+                        <Sparkles className="w-3 h-3 mr-2 fill-current" /> AI Generated Insight
+                    </Badge>
+                    <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight mb-4 drop-shadow-sm">
                         {data.title}
-                        <span className="block text-xl font-medium text-gray-500 mt-2">{data.subTitle}</span>
                     </h1>
-
-                    <div className="flex gap-3">
-                        <Button className="bg-blue-600 hover:bg-blue-700 font-bold px-6">
-                            <Bookmark className="w-4 h-4 mr-2" /> 주제 저장하기
-                        </Button>
-                        <Button variant="outline" className="px-6 font-bold">
-                            <Share2 className="w-4 h-4 mr-2" /> 공유
-                        </Button>
-                    </div>
+                    <p className="text-xl text-blue-100 font-medium max-w-2xl text-shadow-sm">
+                        {data.subTitle}
+                    </p>
                 </div>
+            </div>
 
+            <div className="container mx-auto max-w-5xl px-4 -mt-8 relative z-30">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                    {/* Left Content */}
+
+                    {/* Main Content */}
                     <div className="lg:col-span-2 space-y-8">
 
-                        {/* Overview */}
-                        <section className="bg-white rounded-2xl p-8 shadow-sm">
-                            <h2 className="text-xl font-bold flex items-center gap-2 text-blue-600 mb-4">
-                                <div className="w-1 h-6 bg-blue-600 rounded-full" /> 개요
-                            </h2>
-                            <p className="text-gray-700 leading-relaxed mb-4">
-                                {data.summary}
-                            </p>
-                        </section>
-
-                        {/* Core Concepts */}
-                        <section>
-                            <h2 className="text-xl font-bold flex items-center gap-2 text-blue-600 mb-4 ml-2">
-                                <div className="w-2 h-2 rounded-full bg-blue-600" /> 핵심 개념
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {data.coreConcepts.map((concept, idx) => (
-                                    <Card key={idx} className="p-6 border-none shadow-sm hover:shadow-md transition-shadow">
-                                        <h3 className="font-bold text-lg mb-2">{concept.name}</h3>
-                                        <p className="text-sm text-gray-600 leading-relaxed">
-                                            {concept.description}
-                                        </p>
-                                    </Card>
-                                ))}
+                        {/* AI Insight Card (Summary) */}
+                        <Card className="border-none shadow-xl bg-white overflow-hidden rounded-2xl ring-1 ring-slate-100">
+                            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 px-6 py-4 border-b flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-indigo-600" />
+                                <span className="font-bold text-indigo-900">AI 심층 분석 결과</span>
                             </div>
-                        </section>
+                            <div className="p-8">
+                                <p className="text-lg text-slate-700 leading-8 whitespace-pre-wrap font-medium">
+                                    {data.summary.split('\n').map((line, i) => (
+                                        <React.Fragment key={i}>
+                                            {line.includes('**') ? (
+                                                <span className="font-bold text-slate-900 bg-yellow-50 px-1 rounded">
+                                                    {line.replace(/\*\*/g, '')}
+                                                </span>
+                                            ) : (
+                                                <span className={line.length === 0 ? "block h-4" : ""}>{line}</span>
+                                            )}
+                                        </React.Fragment>
+                                    ))}
+                                </p>
+                            </div>
+                        </Card>
 
-                        {/* Curriculum Connection */}
-                        <section className="bg-white rounded-2xl p-8 shadow-sm">
-                            <h2 className="text-xl font-bold flex items-center gap-2 text-blue-600 mb-6">
-                                <Book className="w-5 h-5" /> 교과 연계
+                        {/* Visual Concepts Grid */}
+                        <section>
+                            <h2 className="text-2xl font-bold flex items-center gap-3 text-slate-900 mb-6">
+                                <Lightbulb className="w-6 h-6 text-yellow-500 fill-current" /> 핵심 개념 이해하기
                             </h2>
-                            <div className="space-y-6">
-                                {data.curriculum.map((curr, idx) => (
-                                    <div key={idx}>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-900" />
-                                            <h3 className="font-bold text-lg">{curr.name}</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {data.coreConcepts.map((concept, idx) => (
+                                    <div key={idx} className="group relative bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                                        <div className="h-40 overflow-hidden bg-slate-200">
+                                            {concept.image ? (
+                                                <img src={concept.image} alt={concept.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-slate-400">No Image</div>
+                                            )}
                                         </div>
-                                        <div className="pl-4 border-l-2 border-blue-100 ml-1.5">
-                                            <p className="text-gray-600 text-sm">{curr.description}</p>
+                                        <div className="p-6">
+                                            <h3 className="font-bold text-xl mb-2 text-slate-800 group-hover:text-blue-600 transition-colors">
+                                                {concept.name}
+                                            </h3>
+                                            <p className="text-slate-600 text-sm leading-relaxed">
+                                                {concept.description}
+                                            </p>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </section>
 
-                        {/* Inquiry Guide */}
+                        {/* Inquiry Guide Steps */}
                         <section>
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-xl font-bold flex items-center gap-2 text-blue-600 ml-2">
-                                    <div className="w-2 h-2 rounded-full bg-blue-600" /> 탐구 가이드
-                                </h2>
-                                <Button
-                                    variant="link"
-                                    className="text-blue-600 font-semibold p-0 h-auto"
-                                    asChild
-                                >
-                                    <Link href={`/report/${params.id}/inquiry-guide`}>
-                                        자세히 보기 <ChevronRight className="w-4 h-4 ml-1" />
-                                    </Link>
-                                </Button>
-                            </div>
+                            <h2 className="text-2xl font-bold flex items-center gap-3 text-slate-900 mb-6">
+                                <Microscope className="w-6 h-6 text-green-600" /> 단계별 탐구 가이드
+                            </h2>
                             <div className="space-y-4">
-                                {[
-                                    { step: 1, title: '배경 이론' },
-                                    { step: 2, title: '교과 연계' },
-                                    { step: 3, title: '탐구 실습' },
-                                    { step: 4, title: '보고서 작성' },
-                                ].map((guide, idx) => (
-                                    <Link key={guide.step} href={`/report/${id}/inquiry-guide/step-${guide.step}?topic=${encodeURIComponent(topicParam || '')}`} className="block group">
-                                        <div className="bg-white rounded-xl p-6 shadow-sm flex gap-6 items-start border border-transparent hover:border-blue-200 transition-all hover:shadow-md">
-                                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center text-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                                {guide.step}
-                                            </div>
-                                            <div>
-                                                <h3 className="font-bold text-lg mb-1 group-hover:text-blue-600 transition-colors">{guide.title}</h3>
-                                                <p className="text-gray-600 text-sm leading-relaxed">
-                                                    {data.inquiryGuide && data.inquiryGuide[idx] ? data.inquiryGuide[idx] : "가이드 내용을 불러오는 중..."}
-                                                </p>
-                                            </div>
+                                {data.inquiryGuide.map((step, idx) => (
+                                    <div key={idx} className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex gap-6 items-start hover:border-blue-200 transition-colors">
+                                        <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-slate-50 text-slate-900 font-bold flex items-center justify-center text-xl shadow-sm">
+                                            {idx + 1}
                                         </div>
-                                    </Link>
+                                        <div>
+                                            <h3 className="font-bold text-lg mb-2 text-slate-800">
+                                                {idx === 0 ? "배경 이론 조사" : idx === 1 ? "교과 연결 고리 찾기" : idx === 2 ? "실험 및 활동 수행" : "보고서 작성"}
+                                            </h3>
+                                            <p className="text-slate-600 leading-relaxed">{step}</p>
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
                         </section>
+
                     </div>
 
-                    {/* Right Sidebar */}
-                    <div className="space-y-6">
-                        <div className="bg-white rounded-2xl p-6 shadow-sm sticky top-24">
-                            <h3 className="font-bold text-sm text-gray-400 uppercase mb-4">목차</h3>
-                            <ul className="space-y-2 text-sm font-medium">
-                                <li className="bg-blue-50 text-blue-600 rounded-lg px-3 py-2 cursor-pointer">개요</li>
-                                <li className="text-gray-500 hover:bg-slate-50 rounded-lg px-3 py-2 cursor-pointer transition-colors">핵심 개념</li>
-                                <li className="text-gray-500 hover:bg-slate-50 rounded-lg px-3 py-2 cursor-pointer transition-colors">교과 연계</li>
-                                <li className="text-gray-500 hover:bg-slate-50 rounded-lg px-3 py-2 cursor-pointer transition-colors">탐구 가이드</li>
-                            </ul>
-
-                            <div className="mt-8 border-t pt-6">
-                                <h3 className="font-bold text-sm text-slate-800 mb-4">참고 자료</h3>
-                                <div className="space-y-3">
-                                    {data.references.map((ref, idx) => (
-                                        <div key={idx} className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors group cursor-pointer">
-                                            <FileText className="w-5 h-5 text-gray-400 group-hover:text-blue-500 flex-shrink-0" />
-                                            <div>
-                                                <p className="text-sm font-bold text-slate-700 leading-tight mb-1">{ref}</p>
-                                                <p className="text-xs text-gray-400">학술 자료</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                    {/* Right Sticky Sidebar */}
+                    <div className="space-y-6 sticky top-24 self-start">
+                        <Card className="p-6 shadow-lg border-none bg-white/80 backdrop-blur">
+                            <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                                <Book className="w-5 h-5 text-blue-500" /> 교과 연계
+                            </h3>
+                            <div className="space-y-4">
+                                {data.curriculum.map((curr, idx) => (
+                                    <div key={idx} className="pl-4 border-l-2 border-blue-200">
+                                        <div className="font-bold text-slate-800">{curr.name}</div>
+                                        <div className="text-sm text-slate-600 mt-1">{curr.description}</div>
+                                    </div>
+                                ))}
                             </div>
+                        </Card>
+
+                        <Card className="p-6 shadow-md border-none">
+                            <h3 className="font-bold text-slate-900 mb-4">참고 문헌</h3>
+                            <ul className="space-y-3">
+                                {data.references.map((ref, idx) => (
+                                    <li key={idx} className="flex items-start gap-2 text-sm text-slate-600">
+                                        <FileText className="w-4 h-4 mt-0.5 text-slate-400 flex-shrink-0" />
+                                        <span>{ref}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </Card>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <Button className="w-full bg-slate-900 hover:bg-slate-800 font-bold h-12">
+                                <Bookmark className="w-4 h-4 mr-2" /> 저장
+                            </Button>
+                            <Button variant="outline" className="w-full font-bold h-12 border-slate-300">
+                                <Share2 className="w-4 h-4 mr-2" /> 공유
+                            </Button>
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>
