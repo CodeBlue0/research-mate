@@ -6,24 +6,26 @@ import {
     Home,
     ArrowRight,
     ArrowLeft,
-    FileText, // Icon for Report
-    PenTool,
-    Layout,
-    CheckCircle2,
-    Quote
+    FileText,
+    Download,
+    Wand2,
+    Save,
+    Check,
+    Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from '@/components/ui/textarea';
 
-interface GuideData {
+interface ReportSection {
+    id: string;
     title: string;
-    description: string;
-    sections: { title: string; content: string }[]; // Changed structure for Step 4
-    checklist: string[];
-    tips: string[];
+    content: string;
+    placeholder: string;
 }
 
 function Step4PageContent() {
@@ -32,148 +34,153 @@ function Step4PageContent() {
     const searchParams = useSearchParams();
     const topicParam = searchParams.get('topic');
 
-    const [guideData, setGuideData] = useState<GuideData | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [activeSection, setActiveSection] = useState("introduction");
+    const [isGenerating, setIsGenerating] = useState(false);
 
-    useEffect(() => {
-        const fetchGuide = async () => {
-            // Mock data for Step 4
-            setLoading(true);
-            setTimeout(() => {
-                setGuideData({
-                    title: "탐구 보고서 작성 가이드",
-                    description: "탐구 활동의 최종 결과물인 보고서를 작성하는 단계입니다. 논리적인 흐름과 학술적인 표현에 유의하세요.",
-                    sections: [
-                        { title: "서론 (Introduction)", content: "탐구 동기, 목적, 이론적 배경을 포함해야 합니다. 왜 이 주제를 선정했는지, 어떤 가설을 세웠는지 명확히 기술하세요." },
-                        { title: "본론 (Main Body)", content: "실험 설계, 수행 과정, 데이터 분석 결과를 상세히 기록합니다. 그래프와 표를 적절히 활용하여 가독성을 높이세요." },
-                        { title: "결론 (Conclusion)", content: "실험 결과를 요약하고, 가설 검증 여부를 판단합니다. 오차 원인 분석과 추후 연구 제언을 포함하면 완성도가 높아집니다." }
-                    ],
-                    checklist: [
-                        "서론-본론-결론의 논리적 흐름 점검",
-                        "참고 문헌(References) 표기 확인",
-                        "오탈자 및 비문 교정"
-                    ],
-                    tips: [
-                        "소수점 표기, 단위(Unit) 등 사소한 부분에서 감점이 발생하지 않도록 주의하세요.",
-                        "친구에게 설명하듯이 쓰기보다는, 제3자가 읽어도 이해할 수 있도록 객관적인 어조를 유지하세요."
-                    ]
-                });
-                setLoading(false);
-            }, 800);
-        };
+    // Initial Draft State
+    const [sections, setSections] = useState<Record<string, string>>({
+        introduction: "",
+        methods: "",
+        results: "",
+        conclusion: ""
+    });
 
-        fetchGuide();
-    }, [topicParam]);
+    const handleGenerateDraft = () => {
+        setIsGenerating(true);
+        // Mock AI Generation
+        setTimeout(() => {
+            setSections({
+                introduction: "본 연구는 '큰 수의 법칙'이 실제 물리적 실험(동전 던지기)에서도 성립하는지를 확인하기 위해 수행되었다. 확률론적 관점에서 독립 시행의 횟수(n)가 증가함에 따라 통계적 확율이 수학적 확률에 수렴한다는 것을 가설로 설정하였다.",
+                methods: "Python 및 JavaScript 기반의 가상 실험 도구를 사용하여 동전 던지기 시뮬레이션을 수행하였다. 시행 횟수 n을 10회부터 10,000회까지 10배씩 증가시키며 앞면이 나온 횟수와 비율을 기록하였다. 변인 통제를 위해 동전의 앞/뒤 확률은 0.5로 고정하였다.",
+                results: "1. n=10일 때, 앞면 비율은 0.6(60%)로 수학적 확률(0.5)과 큰 오차를 보였다.\n2. n=100일 때, 비율은 0.54(54%)로 오차가 줄어들었다.\n3. n=10,000일 때, 비율은 0.501(50.1%)로 0.5에 매우 근접하였다.\n\n이는 그래프상에서도 0.5를 중심으로 진동폭이 줄어드는 형태로 관찰되었다.",
+                conclusion: "실험 결과, 시행 횟수가 증가함에 따라 상대도수는 수학적 확률 0.5에 수렴함을 확인하였다. 이는 큰 수의 법칙을 실험적으로 입증한 것이며, 오차 발생의 원인은 시행 횟수의 부족에 있음을 알 수 있다."
+            });
+            setIsGenerating(false);
+        }, 1500);
+    };
 
-    if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center font-bold text-slate-400">Loading Step 4...</div>;
+    const handleContentChange = (value: string) => {
+        setSections(prev => ({
+            ...prev,
+            [activeSection]: value
+        }));
+    };
 
     return (
         <div className="bg-slate-50 min-h-screen pb-20 font-sans">
-            {/* Hero Section */}
-            <div className="relative w-full h-[350px] bg-slate-900 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-slate-900 to-black/80 z-10" />
-                <div className="absolute inset-0 z-0 opacity-30" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1455390582262-044cdead277a?q=80&w=2070&auto=format&fit=crop")', backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
-
-                <div className="absolute inset-0 z-20 container mx-auto px-4 flex flex-col justify-end pb-12">
-                    <nav className="flex items-center text-sm text-blue-100/80 mb-6">
-                        <Link href="/" className="hover:text-white transition-colors"><Home className="w-4 h-4" /></Link>
-                        <ChevronRight className="w-4 h-4 mx-2" />
-                        <Link href={`/report/${id}?topic=${encodeURIComponent(topicParam || '')}`} className="hover:text-white transition-colors">리포트 홈</Link>
-                        <ChevronRight className="w-4 h-4 mx-2" />
-                        <span className="text-white font-medium">Step 4. 보고서 작성</span>
-                    </nav>
-
-                    <div className="flex items-center gap-3 mb-4">
-                        <Badge className="bg-blue-500 hover:bg-blue-600 text-white border-none px-3 py-1.5 text-sm">
-                            Step 4
-                        </Badge>
-                        <span className="text-blue-200 font-medium tracking-wide text-sm uppercase">Report Writing</span>
+            {/* Hero Section - Compact Version for Editor */}
+            <div className="w-full bg-slate-900 border-b border-white/10">
+                <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <Link href="/" className="text-slate-400 hover:text-white transition-colors"><Home className="w-5 h-5" /></Link>
+                        <ChevronRight className="w-4 h-4 text-slate-600" />
+                        <span className="text-slate-200 font-bold">탐구 보고서 에디터</span>
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight mb-2 drop-shadow-lg">
-                        {guideData?.title}
-                    </h1>
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" className="text-slate-400 hover:text-white">
+                            <Save className="w-4 h-4 mr-2" /> 저장
+                        </Button>
+                        <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                            <Download className="w-4 h-4 mr-2" /> PDF 내보내기
+                        </Button>
+                    </div>
                 </div>
             </div>
 
-            <div className="container mx-auto max-w-5xl px-4 -mt-8 relative z-30">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="container mx-auto max-w-6xl px-4 py-8 h-[calc(100vh-64px)]">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
 
-                    {/* Main Content */}
-                    <div className="lg:col-span-8 space-y-8">
-
-                        {/* Intro Card */}
-                        <Card className="bg-white border-none shadow-xl rounded-2xl p-8 ring-1 ring-slate-100">
-                            <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                                <PenTool className="w-5 h-5 text-blue-500 fill-current" />
-                                작성 가이드
-                            </h2>
-                            <p className="text-lg text-slate-700 leading-relaxed font-medium">
-                                {guideData?.description}
-                            </p>
-                        </Card>
-
-                        {/* Report Sections */}
-                        <section>
-                            <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                <Layout className="w-6 h-6 text-blue-600" />
-                                주요 구성 요소
-                            </h2>
-                            <div className="space-y-4">
-                                {guideData?.sections.map((sec, idx) => (
-                                    <div key={idx} className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:border-blue-200 transition-all hover:shadow-md">
-                                        <h3 className="text-lg font-bold text-slate-900 mb-2">{sec.title}</h3>
-                                        <p className="text-slate-600 leading-relaxed bg-blue-50/50 p-4 rounded-lg border border-blue-100/50">
-                                            {sec.content}
-                                        </p>
-                                    </div>
+                    {/* Left: Navigation & Preview */}
+                    <div className="lg:col-span-3 h-full flex flex-col gap-4">
+                        <Card className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex-1">
+                            <h3 className="font-bold text-slate-900 mb-4 px-2">목차</h3>
+                            <nav className="space-y-1">
+                                {['introduction', 'methods', 'results', 'conclusion'].map((sec) => (
+                                    <button
+                                        key={sec}
+                                        onClick={() => setActiveSection(sec)}
+                                        className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-between ${activeSection === sec
+                                                ? 'bg-blue-50 text-blue-700 border border-blue-100 shadow-sm'
+                                                : 'text-slate-600 hover:bg-slate-50'
+                                            }`}
+                                    >
+                                        <span className="capitalize">{sec}</span>
+                                        {sections[sec] && <Check className="w-3 h-3 text-blue-500" />}
+                                    </button>
                                 ))}
-                            </div>
-                        </section>
+                            </nav>
 
-                        {/* Navigation */}
-                        <div className="flex justify-between items-center pt-8">
-                            <Button variant="outline" size="lg" className="rounded-full px-6" onClick={() => window.history.back()}>
-                                <ArrowLeft className="w-4 h-4 mr-2" /> 이전
-                            </Button>
-                            <Link href={`/report/${id}/inquiry-guide/complete?topic=${encodeURIComponent(topicParam || '')}`}>
-                                <Button size="lg" className="rounded-full px-8 bg-blue-600 hover:bg-blue-700 font-bold shadow-lg shadow-blue-200 text-white">
-                                    작성 완료 (내용 확인) <ArrowRight className="w-4 h-4 ml-2" />
-                                </Button>
-                            </Link>
-                        </div>
-                    </div>
-
-                    {/* Sidebar */}
-                    <div className="lg:col-span-4 space-y-6">
-                        {/* Checklist */}
-                        <Card className="bg-white border-none shadow-lg rounded-2xl p-6 ring-1 ring-slate-100 sticky top-24">
-                            <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                                <CheckCircle2 className="w-5 h-5 text-green-500" />
-                                체크리스트
-                            </h3>
-                            <div className="space-y-3">
-                                {guideData?.checklist.map((item, idx) => (
-                                    <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-slate-50">
-                                        <input type="checkbox" className="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
-                                        <span className="text-sm text-slate-700 font-medium leading-tight">{item}</span>
+                            <div className="mt-8 px-2">
+                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Completion</h4>
+                                    <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                        <div
+                                            className="bg-blue-500 h-full transition-all duration-500"
+                                            style={{ width: `${(Object.values(sections).filter(v => v.length > 0).length / 4) * 100}%` }}
+                                        />
                                     </div>
-                                ))}
-                            </div>
-
-                            <div className="mt-8 pt-6 border-t border-slate-100">
-                                <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                                    <Quote className="w-4 h-4 text-blue-400 fill-current" />
-                                    Honey Tip
-                                </h3>
-                                <div className="space-y-4">
-                                    {guideData?.tips.map((tip, idx) => (
-                                        <p key={idx} className="text-sm text-slate-600 italic bg-blue-50 p-3 rounded-lg text-blue-800">
-                                            "{tip}"
-                                        </p>
-                                    ))}
+                                    <p className="text-right text-xs text-slate-500 mt-1">
+                                        {Object.values(sections).filter(v => v.length > 0).length} / 4 Sections
+                                    </p>
                                 </div>
                             </div>
                         </Card>
+                    </div>
+
+                    {/* Right: Editor Area */}
+                    <div className="lg:col-span-9 h-full flex flex-col">
+                        <Card className="bg-white flex-1 shadow-lg border-slate-200 overflow-hidden flex flex-col relative">
+
+                            {/* Toolbar */}
+                            <div className="h-14 border-b border-slate-100 flex items-center justify-between px-6 bg-slate-50">
+                                <h2 className="text-lg font-bold text-slate-800 capitalize">
+                                    {activeSection}
+                                </h2>
+
+                                {sections[activeSection] === "" && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
+                                        onClick={handleGenerateDraft}
+                                        disabled={isGenerating}
+                                    >
+                                        {isGenerating ? (
+                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> 작성 중...</>
+                                        ) : (
+                                            <><Wand2 className="w-4 h-4 mr-2" /> AI 초안 생성</>
+                                        )}
+                                    </Button>
+                                )}
+                            </div>
+
+                            {/* Text Area */}
+                            <div className="flex-1 p-8 bg-white overflow-y-auto">
+                                <Textarea
+                                    value={sections[activeSection]}
+                                    onChange={(e) => handleContentChange(e.target.value)}
+                                    placeholder={`Write your ${activeSection} here...`}
+                                    className="w-full h-full min-h-[500px] resize-none border-none focus-visible:ring-0 text-lg leading-relaxed text-slate-700 p-0 placeholder:text-slate-300"
+                                />
+                            </div>
+
+                            {/* Floating Stats */}
+                            <div className="absolute bottom-6 right-6 text-xs text-slate-300 pointer-events-none">
+                                {sections[activeSection].length} characters
+                            </div>
+                        </Card>
+
+                        {/* Navigation Footer */}
+                        <div className="flex justify-between items-center pt-8 mt-2">
+                            <Button variant="outline" size="lg" className="rounded-full px-6 bg-white border-slate-200" onClick={() => window.history.back()}>
+                                <ArrowLeft className="w-4 h-4 mr-2" /> 이전 단계
+                            </Button>
+                            <Link href={`/report/${id}/inquiry-guide/complete?topic=${encodeURIComponent(topicParam || '')}`}>
+                                <Button size="lg" className="rounded-full px-8 bg-blue-600 hover:bg-blue-700 font-bold shadow-lg shadow-blue-200 text-white">
+                                    보고서 최종 완성 <Check className="w-4 h-4 ml-2" />
+                                </Button>
+                            </Link>
+                        </div>
                     </div>
 
                 </div>

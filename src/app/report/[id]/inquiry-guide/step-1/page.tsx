@@ -17,12 +17,21 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { QuizCard } from '@/components/ui/quiz-card';
 
 interface GuideData {
     title: string;
     description: string;
-    advancedConcepts: { name: string; description: string }[];
-    curriculumConcepts: { name: string; description: string }[];
+    learningModules: {
+        title: string;
+        content: string;
+        quiz: {
+            question: string;
+            options: string[];
+            correctAnswer: string;
+            explanation: string;
+        }
+    }[];
     checklist: string[];
     tips: string[];
 }
@@ -38,29 +47,41 @@ function Step1PageContent() {
 
     useEffect(() => {
         const fetchGuide = async () => {
-            // Mock data or API call would go here. 
-            // Generating mock data locally for visual consistency as API key might be missing
+            // Mock data simulating "Teaching Mode"
             setLoading(true);
             setTimeout(() => {
                 setGuideData({
-                    title: "배경 이론 심화 연구",
-                    description: "성공적인 탐구는 깊이 있는 이론적 배경에서 시작됩니다. 교과서 수준을 넘어 대학교 전공 서적 수준의 지식을 탐색해보세요.",
-                    advancedConcepts: [
-                        { name: "확률 공간 (Probability Space)", description: "표본 공간(Ω), 시그마 대수(F), 확률 측도(P)의 삼위일체(Triple) 정의를 이해합니다." },
-                        { name: "대수의 법칙 (LLN) 증명", description: "체비쇼프 부등식(Chebyshev's Inequality)을 활용한 약한 대수의 법칙 증명 과정을 학습합니다." }
-                    ],
-                    curriculumConcepts: [
-                        { name: "확률과 통계 - 통계적 추정", description: "표본평균의 분포와 모평균 추정의 원리를 연결합니다." },
-                        { name: "수학 II - 극한", description: "무한대(∞) 개념과 수렴(Convergence)의 엄밀한 정의를 복습합니다." }
+                    title: "배경 이론 마스터",
+                    description: "단순히 지식을 찾는 것이 아니라, 핵심 개념을 완벽하게 이해하고 내 언어로 재정의하는 과정입니다.",
+                    learningModules: [
+                        {
+                            title: "확률의 정의 (Definition of Probability)",
+                            content: "확률은 단순히 '일어날 가능성'이 아닙니다. 수학적으로는 **'전체 표본 공간(Sample Space) 중에서 특정 사건(Event)이 일어날 비율'**로 정의됩니다. 동전을 던질 때 앞면이 나올 확률이 1/2라는 것은, 무수히 많이 던졌을 때 그 비율이 0.5에 수렴한다는 뜻입니다.",
+                            quiz: {
+                                question: "확률의 고전적 정의에 따르면 P(E) = n(E)/n(S) 입니다. 여기서 n(S)는 무엇을 의미할까요?",
+                                options: ["특정 사건이 일어나는 경우의 수", "전체 표본 공간의 경우의 수", "실험 횟수", "오차 범위"],
+                                correctAnswer: "전체 표본 공간의 경우의 수",
+                                explanation: "n(S)는 Sample Space, 즉 일어날 수 있는 모든 경우의 수를 의미합니다."
+                            }
+                        },
+                        {
+                            title: "큰 수의 법칙 (Law of Large Numbers)",
+                            content: "우리가 동전을 10번 던지면 앞면이 7번(70%) 나올 수도 있습니다. 하지만 10,000번, 100,000번 던지면 그 비율은 점점 수학적 확률인 50%에 가까워집니다. 이것이 바로 **큰 수의 법칙**입니다. 즉, 시행 횟수가 늘어날수록 통계적 확률은 수학적 확률과 같아집니다.",
+                            quiz: {
+                                question: "큰 수의 법칙에 대한 설명으로 옳은 것은?",
+                                options: ["시행 횟수가 적을수록 정확하다.", "시행 횟수가 무한히 커지면, 상대도수는 수학적 확률에 수렴한다.", "동전을 100번 던지면 반드시 50번은 앞면이 나온다.", "오차는 시행 횟수에 비례하여 커진다."],
+                                correctAnswer: "시행 횟수가 무한히 커지면, 상대도수는 수학적 확률에 수렴한다.",
+                                explanation: "시행 횟수(n)가 커질수록 오차는 줄어들고, 실제 결과는 이론적 확률에 수렴하게 됩니다."
+                            }
+                        }
                     ],
                     checklist: [
-                        "관련 전공 서적 2권 이상 찾아보기",
-                        "핵심 수식(Formula) 노트에 정리하기",
-                        "이론의 한계점(Assumption) 파악하기"
+                        "확률의 개념을 친구에게 설명할 수 있다",
+                        "큰 수의 법칙을 그래프로 그려볼 수 있다"
                     ],
                     tips: [
-                        "단순한 검색보다는 Google Scholar나 RISS에서 학술 자료를 찾아보세요.",
-                        "수식의 유도 과정을 직접 손으로 써보며 이해하는 것이 중요합니다."
+                        "이론을 공부할 때는 '왜?'라는 질문을 계속 던져보세요.",
+                        "위의 퀴즈를 모두 맞출 때까지 개념을 다시 읽어보세요."
                     ]
                 });
                 setLoading(false);
@@ -110,57 +131,50 @@ function Step1PageContent() {
                         <Card className="bg-white border-none shadow-xl rounded-2xl p-8 ring-1 ring-slate-100">
                             <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
                                 <Lightbulb className="w-5 h-5 text-yellow-500 fill-current" />
-                                학습 목표
+                                학습 가이드
                             </h2>
                             <p className="text-lg text-slate-700 leading-relaxed font-medium">
                                 {guideData?.description}
                             </p>
                         </Card>
 
-                        {/* Advanced Concepts */}
-                        <section>
-                            <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                <GraduationCap className="w-6 h-6 text-indigo-600" />
-                                심화 이론 탐구
-                            </h2>
-                            <div className="space-y-4">
-                                {guideData?.advancedConcepts.map((concept, idx) => (
-                                    <div key={idx} className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:border-indigo-200 transition-all hover:shadow-md">
-                                        <h3 className="text-lg font-bold text-slate-900 mb-2">{concept.name}</h3>
-                                        <p className="text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-lg border border-slate-100">
-                                            {concept.description}
-                                        </p>
+                        {/* Learning Modules */}
+                        <div className="space-y-12">
+                            {guideData?.learningModules.map((module, idx) => (
+                                <section key={idx} className="scroll-mt-24">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center">
+                                            {idx + 1}
+                                        </div>
+                                        <h2 className="text-2xl font-bold text-slate-800">
+                                            {module.title}
+                                        </h2>
                                     </div>
-                                ))}
-                            </div>
-                        </section>
 
-                        {/* Curriculum Connection */}
-                        <section>
-                            <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                <BookOpen className="w-6 h-6 text-green-600" />
-                                교과 연결 고리
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {guideData?.curriculumConcepts.map((concept, idx) => (
-                                    <div key={idx} className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-green-500">
-                                        <h3 className="text-lg font-bold text-slate-900 mb-2">{concept.name}</h3>
-                                        <p className="text-sm text-slate-600">
-                                            {concept.description}
-                                        </p>
+                                    {/* Content Card */}
+                                    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-6 leading-relaxed text-slate-700 text-lg">
+                                        {module.content}
                                     </div>
-                                ))}
-                            </div>
-                        </section>
+
+                                    {/* Interactive Quiz */}
+                                    <QuizCard
+                                        question={module.quiz.question}
+                                        options={module.quiz.options}
+                                        correctAnswer={module.quiz.correctAnswer}
+                                        explanation={module.quiz.explanation}
+                                    />
+                                </section>
+                            ))}
+                        </div>
 
                         {/* Navigation */}
-                        <div className="flex justify-between items-center pt-8">
+                        <div className="flex justify-between items-center pt-8 border-t border-slate-200 mt-12">
                             <Button variant="outline" size="lg" className="rounded-full px-6" onClick={() => window.history.back()}>
                                 <ArrowLeft className="w-4 h-4 mr-2" /> 이전
                             </Button>
                             <Link href={`/report/${id}/inquiry-guide/step-2?topic=${encodeURIComponent(topicParam || '')}`}>
                                 <Button size="lg" className="rounded-full px-8 bg-indigo-600 hover:bg-indigo-700 font-bold shadow-lg shadow-indigo-200">
-                                    다음 단계 (교과 연계) <ArrowRight className="w-4 h-4 ml-2" />
+                                    다음 단계 (교과 연계 풀기) <ArrowRight className="w-4 h-4 ml-2" />
                                 </Button>
                             </Link>
                         </div>
@@ -172,7 +186,7 @@ function Step1PageContent() {
                         <Card className="bg-white border-none shadow-lg rounded-2xl p-6 ring-1 ring-slate-100 sticky top-24">
                             <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
                                 <CheckCircle2 className="w-5 h-5 text-green-500" />
-                                체크리스트
+                                학습 체크리스트
                             </h3>
                             <div className="space-y-3">
                                 {guideData?.checklist.map((item, idx) => (
@@ -186,7 +200,7 @@ function Step1PageContent() {
                             <div className="mt-8 pt-6 border-t border-slate-100">
                                 <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
                                     <Quote className="w-4 h-4 text-indigo-400 fill-current" />
-                                    Honey Tip
+                                    AI 선생님의 팁
                                 </h3>
                                 <div className="space-y-4">
                                     {guideData?.tips.map((tip, idx) => (
