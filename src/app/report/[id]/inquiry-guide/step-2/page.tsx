@@ -45,55 +45,54 @@ function Step2PageContent() {
 
     useEffect(() => {
         const fetchGuide = async () => {
-            // Mock data for Step 2
+            // Fetch Guide Data
             setLoading(true);
-            setTimeout(() => {
-                setGuideData({
-                    title: "교과 연결의 논리 완성",
-                    description: "이론을 내 주제에 억지로 끼워 맞추는 것이 아니라, 자연스러운 논리적 연결 고리를 찾아야 합니다.",
-                    learningModules: [
-                        {
-                            title: "연결의 타당성 (Logical Validity)",
-                            content: "많은 학생들이 범하는 오류는 '그냥 관련 있어 보여서'입니다. **'A 원리에 의해 B 현상이 발생하고, 이를 C 문제 해결에 적용한다'**는 인과관계가 명확해야 합니다.",
-                            quiz: {
-                                question: "'큰 수의 법칙'을 '동전 던지기' 주제에 연결할 때 가장 적절한 논리는?",
-                                options: [
-                                    "동전은 금속이라서 물리 법칙을 따른다.",
-                                    "동전 던지기는 독립 시행이며, 시행 횟수가 늘어날수록 통계적 확률이 수학적 확률에 수렴함을 실험으로 보일 수 있다.",
-                                    "동전을 많이 던지면 손이 아프므로 생물학적 한계를 실험한다.",
-                                    "동전의 앞면과 뒷면 디자인이 다르므로 공기 저항이 다르다."
-                                ],
-                                correctAnswer: "동전 던지기는 독립 시행이며, 시행 횟수가 늘어날수록 통계적 확률이 수학적 확률에 수렴함을 실험으로 보일 수 있다.",
-                                explanation: "정확한 수학적 정의(독립 시행, 수렴)를 기반으로 실험의 목적(이론 검증)을 연결해야 합니다."
-                            }
-                        },
-                        {
-                            title: "심화 확장 (Evolution)",
-                            content: "단순히 교과서 내용을 확인하는 수준을 넘어, **'만약 조건이 바뀐다면?'**이라는 질문을 던져보세요. 예를 들어, '동전의 무게 중심이 쏠려 있다면 큰 수의 법칙은 어떻게 달라질까?'와 같은 가정이 훌륭한 탐구 주제가 됩니다.",
-                            quiz: {
-                                question: "다음 중 '심화 탐구'로 발전시키기에 가장 좋은 질문은?",
-                                options: [
-                                    "교과서에 나온 동전 던지기 예제를 그대로 따라해본다.",
-                                    "동전 대신 주사위를 던져본다.",
-                                    "무게 중심이 51:49로 치우친 동전을 시뮬레이션하여, 수렴하는 값이 0.5가 아님을 확인한다.",
-                                    "동전을 더 빨리 던지는 기계를 만든다."
-                                ],
-                                correctAnswer: "무게 중심이 51:49로 치우친 동전을 시뮬레이션하여, 수렴하는 값이 0.5가 아님을 확인한다.",
-                                explanation: "기존 이론(0.5 수렴)을 비틀어보는 변수(편향된 동전)를 도입하여 새로운 결론을 도출하는 것이 심화 탐구입니다."
-                            }
-                        }
-                    ],
-                    checklist: [
-                        "교과서 개념과 내 주제의 연결 고리를 한 문장으로 쓸 수 있다",
-                        "단순 확인을 넘어 '변형'이나 '심화' 요소를 넣었다"
-                    ],
-                    tips: [
-                        "선생님은 '이걸 왜 했어?'라고 물으실 것입니다. 그 대답이 바로 이 단계의 핵심입니다.",
-                        "논리가 약하다면 주제를 조금 수정하는 것도 방법입니다."
-                    ]
+            try {
+                const response = await fetch('/api/guide/step', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        topic: topicParam || "Research Topic",
+                        step: 2
+                    })
                 });
+                const data = await response.json();
+
+                if (data) {
+                    setGuideData({
+                        title: data.title,
+                        description: data.description,
+                        learningModules: [
+                            {
+                                title: "핵심 원리 (Core Principle)",
+                                content: `**${data.corePrinciple}**\n\n${data.researchRelevance}`,
+                                quiz: {
+                                    question: "이 원리를 적용할 때 가장 주의해야 할 점은?",
+                                    options: ["변인 통제", "계산 실수", "장비 가격", "실험 시간"],
+                                    correctAnswer: "변인 통제",
+                                    explanation: "과학적 원리를 적용할 때는 다른 변인이 결과에 영향을 주지 않도록 통제하는 것이 핵심입니다."
+                                }
+                            },
+                            {
+                                title: "원리 적용 메커니즘 (Application Logic)",
+                                content: data.applicationMechanism || "",
+                                quiz: {
+                                    question: "내 주제에 이 원리를 적용하는 논리적 근거는?",
+                                    options: ["교과서에 나와서", "선생님이 시켜서", "원인과 결과의 인과관계가 명확해서", "쉬워 보여서"],
+                                    correctAnswer: "원인과 결과의 인과관계가 명확해서",
+                                    explanation: "논리적 타당성이 확보되어야 올바른 적용이라 할 수 있습니다."
+                                }
+                            }
+                        ],
+                        checklist: data.checklist || [],
+                        tips: data.tips || []
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to fetch Step 2 guide:", error);
+            } finally {
                 setLoading(false);
-            }, 800);
+            }
         };
 
         fetchGuide();

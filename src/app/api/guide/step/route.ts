@@ -124,6 +124,60 @@ export async function POST(request: Request) {
                 if (content) return NextResponse.json(JSON.parse(content));
             }
 
+            if (step === 3) {
+                // Specific prompt for Step 3: Practical Activity (Experimental Design)
+                const prompt = `
+                Provide a highly detailed "Experimental Design Guide" for Step 3 of a research project on: "${topic}".
+                Language: Korean.
+
+                This guide should help the student conduct a valid scientific experiment or simulation.
+
+                Return ONLY a JSON object with:
+                - "title": "탐구 실험 설계"
+                - "description": "Intro..."
+                - "experiment": {
+                    "hypothesis": "Clear hypothesis statement.",
+                    "variables": {
+                        "independent": "What to change",
+                        "dependent": "What to measure",
+                        "controlled": "What to keep constant"
+                    },
+                    "materials": ["Item 1", "Item 2", ...],
+                    "procedure": ["Step 1", "Step 2", ...]
+                }
+                - "goal": Goal.
+                - "checklist": Array of 3 todos.
+                - "tips": Array of 2 tips.
+
+                JSON Format:
+                {
+                    "title": "...",
+                    "description": "...",
+                    "experiment": {
+                        "hypothesis": "...",
+                        "variables": { "independent": "...", "dependent": "...", "controlled": "..." },
+                        "materials": ["...", "..."],
+                        "procedure": ["...", "..."]
+                    },
+                    "goal": "...",
+                    "checklist": [ ... ],
+                    "tips": [ ... ]
+                }
+                `;
+
+                const completion = await deepseek.chat.completions.create({
+                    messages: [
+                        { role: "system", content: "You are a methodologically strict science teacher. You ensure experiments are valid and reproducible." },
+                        { role: "user", content: prompt }
+                    ],
+                    model: "deepseek-chat",
+                    response_format: { type: "json_object" },
+                });
+
+                const content = completion.choices[0].message.content;
+                if (content) return NextResponse.json(JSON.parse(content));
+            }
+
             if (step === 4) {
                 // Step 4: Report Writing (Auto-Drafting)
                 const step1 = context?.step1 || "";

@@ -49,8 +49,17 @@ export async function POST(request: Request) {
             });
 
             const content = completion.choices[0].message.content;
+            console.log("DeepSeek Raw Content:", content); // Debug log
+
             if (content) {
-                data = JSON.parse(content);
+                // Strip markdown code blocks if present ( ```json ... ``` )
+                const cleanContent = content.replace(/```json\n?|```/g, '').trim();
+                try {
+                    data = JSON.parse(cleanContent);
+                } catch (parseError) {
+                    console.error("JSON Parse Error:", parseError);
+                    console.log("Failed Content:", cleanContent);
+                }
             }
         }
 

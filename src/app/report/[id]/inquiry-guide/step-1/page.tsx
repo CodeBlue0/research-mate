@@ -47,45 +47,55 @@ function Step1PageContent() {
 
     useEffect(() => {
         const fetchGuide = async () => {
-            // Mock data simulating "Teaching Mode"
+            // Fetch Guide Data
             setLoading(true);
-            setTimeout(() => {
-                setGuideData({
-                    title: "배경 이론 마스터",
-                    description: "단순히 지식을 찾는 것이 아니라, 핵심 개념을 완벽하게 이해하고 내 언어로 재정의하는 과정입니다.",
-                    learningModules: [
-                        {
-                            title: "확률의 정의 (Definition of Probability)",
-                            content: "확률은 단순히 '일어날 가능성'이 아닙니다. 수학적으로는 **'전체 표본 공간(Sample Space) 중에서 특정 사건(Event)이 일어날 비율'**로 정의됩니다. 동전을 던질 때 앞면이 나올 확률이 1/2라는 것은, 무수히 많이 던졌을 때 그 비율이 0.5에 수렴한다는 뜻입니다.",
-                            quiz: {
-                                question: "확률의 고전적 정의에 따르면 P(E) = n(E)/n(S) 입니다. 여기서 n(S)는 무엇을 의미할까요?",
-                                options: ["특정 사건이 일어나는 경우의 수", "전체 표본 공간의 경우의 수", "실험 횟수", "오차 범위"],
-                                correctAnswer: "전체 표본 공간의 경우의 수",
-                                explanation: "n(S)는 Sample Space, 즉 일어날 수 있는 모든 경우의 수를 의미합니다."
-                            }
-                        },
-                        {
-                            title: "큰 수의 법칙 (Law of Large Numbers)",
-                            content: "우리가 동전을 10번 던지면 앞면이 7번(70%) 나올 수도 있습니다. 하지만 10,000번, 100,000번 던지면 그 비율은 점점 수학적 확률인 50%에 가까워집니다. 이것이 바로 **큰 수의 법칙**입니다. 즉, 시행 횟수가 늘어날수록 통계적 확률은 수학적 확률과 같아집니다.",
-                            quiz: {
-                                question: "큰 수의 법칙에 대한 설명으로 옳은 것은?",
-                                options: ["시행 횟수가 적을수록 정확하다.", "시행 횟수가 무한히 커지면, 상대도수는 수학적 확률에 수렴한다.", "동전을 100번 던지면 반드시 50번은 앞면이 나온다.", "오차는 시행 횟수에 비례하여 커진다."],
-                                correctAnswer: "시행 횟수가 무한히 커지면, 상대도수는 수학적 확률에 수렴한다.",
-                                explanation: "시행 횟수(n)가 커질수록 오차는 줄어들고, 실제 결과는 이론적 확률에 수렴하게 됩니다."
-                            }
-                        }
-                    ],
-                    checklist: [
-                        "확률의 개념을 친구에게 설명할 수 있다",
-                        "큰 수의 법칙을 그래프로 그려볼 수 있다"
-                    ],
-                    tips: [
-                        "이론을 공부할 때는 '왜?'라는 질문을 계속 던져보세요.",
-                        "위의 퀴즈를 모두 맞출 때까지 개념을 다시 읽어보세요."
-                    ]
+            try {
+                const response = await fetch('/api/guide/step', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        topic: topicParam || "Research Topic",
+                        step: 1
+                    })
                 });
+                const data = await response.json();
+
+                if (data) {
+                    // Map API response to UI State
+                    setGuideData({
+                        title: data.title,
+                        description: data.description,
+                        learningModules: [
+                            {
+                                title: "심화 이론 (Advanced Concepts)",
+                                content: data.advancedConcepts?.map((c: any) => `**${c.name}**: ${c.description}`).join('\n\n') || "",
+                                quiz: {
+                                    question: "이 이론의 핵심 전제는 무엇인가요?",
+                                    options: ["전제 A", "전제 B", "전제 C", "전제 D"], // API doesn't return quiz yet, keeping placeholder or generic
+                                    correctAnswer: "전제 A",
+                                    explanation: "심화 이론을 이해했는지 스스로 점검해보세요."
+                                }
+                            },
+                            {
+                                title: "교과 연결 (High School Curriculum)",
+                                content: data.curriculumConcepts?.map((c: any) => `**${c.name}**: ${c.description}`).join('\n\n') || "",
+                                quiz: {
+                                    question: "관련된 고교 교과는?",
+                                    options: ["수학", "과학", "사회", "정보"],
+                                    correctAnswer: "과학",
+                                    explanation: "교과서에서 배운 내용이 심화 이론의 기초가 됩니다."
+                                }
+                            }
+                        ],
+                        checklist: data.checklist || [],
+                        tips: data.tips || []
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to fetch Step 1 guide:", error);
+            } finally {
                 setLoading(false);
-            }, 800);
+            }
         };
 
         fetchGuide();
